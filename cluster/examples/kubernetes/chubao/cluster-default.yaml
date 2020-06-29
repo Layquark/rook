@@ -1,0 +1,84 @@
+apiVersion: chubao.rook.io/v1alpha1
+kind: Cluster
+metadata:
+  name: rook-chubao
+  namespace: chubao
+spec:
+  cfsVersion:
+    serverImage: chubaofs/cfs-server:2.0.5
+    clientImage: chubaofs/cfs-client:2.0.5
+
+  # The path on the host where configuration files will be persisted. Must be specified.
+  # Important: if you reinstall the cluster, make sure you delete this directory from each host or else the mons will fail to start on the new cluster.
+  # In Minikube, the '/data' directory is configured to persist across reboots. Use "/data/rook" in Minikube environment.
+  dataDirHostPath: /var/lib/rook
+  logDirHostPath: /var/log/rook
+
+  master:
+    replicas: 3
+    cluster: my-cluster
+    nodeSelector:
+      chuabaofs-master: enabled
+    logLevel: info
+    retainLogs: 2000
+    port: 17010
+    prof: 17020
+    exporterPort: 9500
+    metanodeReservedMem: "67108864"
+#    resources:
+#      requests:
+#        memory: "8Gi"
+#        cpu: "2000m"
+#      limits:
+#        memory: "32Gi"
+#        cpu: "8000m"
+  metaNode:
+    nodeSelector:
+      chuabaofs-metanode: enabled
+    logLevel: info
+    totalMem: "26843545600"
+    port: 17210
+    prof: 17220
+    raftHeartbeat: 17230
+    raftReplica: 17240
+    exporterPort: 9510
+#    resources:
+#      requests:
+#        memory: "32Gi"
+#        cpu: "2000m"
+#      limits:
+#        memory: "256Gi"
+#        cpu: "8000m"
+  dataDode:
+    nodeSelector:
+      chuabaofs-datanode: enabled
+    logLevel: info
+    port: 17310
+    prof: 17320
+    raftHeartbeat: 17330
+    raftReplica: 17340
+    exporterPort: 9520
+    disks:
+      - /data0:21474836480
+      - /data1:21474836480
+#    resources:
+#      requests:
+#        memory: "8Gi"
+#        cpu: "2000m"
+#      limits:
+#        memory: "32Gi"
+#        cpu: "8000m"
+  client:
+    replicas: 1
+    volName: "test"
+    owner: "chubaofs"
+    logLevel: info
+    exporterPort: 9530
+    prof: 17410
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1024Mi"
+        cpu: "1000m"

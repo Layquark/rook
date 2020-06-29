@@ -1,0 +1,29 @@
+apiVersion: chubao.rook.io/v1alpha1
+kind: ChubaoFSCluster
+metadata:
+  name: rook-chubao
+  namespace: chubao
+spec:
+  cfsVersion:
+    serverImage: chubaofs/cfs-server:2.0.5
+  dataDirHostPath: /var/lib/rook
+  logDirHostPath: /var/log/rook
+  master:
+    cluster: my-cluster
+    nodeSelector:
+      chuabaofs-master: enabled
+    metanodeReservedMem: "67108864"
+  metaNode:
+    nodeSelector:
+      chuabaofs-metanode: enabled
+    totalMem: "26843545600"
+  dataNode:
+    nodeSelector:
+      chuabaofs-datanode: enabled
+    disks:
+      - /data0:21474836480
+      - /data1:21474836480
+  client:
+    replicas: 1
+    volName: "my-volume"
+    owner: "client-user"
