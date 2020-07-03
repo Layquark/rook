@@ -18,9 +18,9 @@ limitations under the License.
 package chubao
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"syscall"
 
@@ -52,7 +52,7 @@ type Operator struct {
 func New(context *clusterd.Context, operatorNamespace string) *Operator {
 	o := &Operator{
 		context:           context,
-		resources:         nil,
+		resources:         []k8sutil.CustomResource{cluster.ChubaoClusterResource},
 		operatorNamespace: operatorNamespace,
 	}
 
@@ -112,39 +112,43 @@ func (o *Operator) getNamespaceForWatch() string {
 }
 
 func (o *Operator) startDrivers() error {
-	if o.delayedDaemonsStarted {
-		return nil
-	}
-
-	o.delayedDaemonsStarted = true
-	if err := o.updateDrivers(); err != nil {
-		o.delayedDaemonsStarted = false // unset because failed to updateDrivers
-		return err
-	}
+	fmt.Println("startDrivers")
+	logger.Infof("startDrivers")
+	//if o.delayedDaemonsStarted {
+	//	return nil
+	//}
+	//
+	//o.delayedDaemonsStarted = true
+	//if err := o.updateDrivers(); err != nil {
+	//	o.delayedDaemonsStarted = false // unset because failed to updateDrivers
+	//	return err
+	//}
 
 	return nil
 }
 
 func (o *Operator) updateDrivers() error {
-	var err error
-
-	// Skipping CSI driver update since the first cluster hasn't been started yet
-	if !o.delayedDaemonsStarted {
-		return nil
-	}
-
-	if o.operatorNamespace == "" {
-		return errors.Errorf("rook operator namespace is not provided. expose it via downward API in the rook operator manifest file using environment variable %s", k8sutil.PodNamespaceEnvVar)
-	}
-
-	ownerRef, err := getDeploymentOwnerReference(o.context.Clientset, o.operatorNamespace)
-	if err != nil {
-		logger.Warningf("could not find deployment owner reference to assign to csi drivers. %v", err)
-	}
-	if ownerRef != nil {
-		blockOwnerDeletion := false
-		ownerRef.BlockOwnerDeletion = &blockOwnerDeletion
-	}
+	fmt.Println("updateDrivers")
+	logger.Infof("updateDrivers")
+	//var err error
+	//
+	//// Skipping CSI driver update since the first cluster hasn't been started yet
+	//if !o.delayedDaemonsStarted {
+	//	return nil
+	//}
+	//
+	//if o.operatorNamespace == "" {
+	//	return errors.Errorf("rook operator namespace is not provided. expose it via downward API in the rook operator manifest file using environment variable %s", k8sutil.PodNamespaceEnvVar)
+	//}
+	//
+	//ownerRef, err := getDeploymentOwnerReference(o.context.Clientset, o.operatorNamespace)
+	//if err != nil {
+	//	logger.Warningf("could not find deployment owner reference to assign to csi drivers. %v", err)
+	//}
+	//if ownerRef != nil {
+	//	blockOwnerDeletion := false
+	//	ownerRef.BlockOwnerDeletion = &blockOwnerDeletion
+	//}
 
 	return nil
 }
@@ -157,13 +161,7 @@ func (o *Operator) startManager(namespaceToWatch string, stopCh <-chan struct{},
 	}
 
 	logger.Info("setting up the controller-runtime manager")
-	kubeConfig, err := config.GetConfig()
-	if err != nil {
-		mgrErrorCh <- errors.Wrap(err, "failed to get client config for controller-runtime manager")
-		return
-	}
-
-	mgr, err := manager.New(kubeConfig, mgrOpts)
+	mgr, err := manager.New(o.context.KubeConfig, mgrOpts)
 	if err != nil {
 		mgrErrorCh <- errors.Wrap(err, "failed to set up overall controller-runtime manager")
 		return

@@ -27,20 +27,22 @@ import (
 	"os"
 )
 
-var clusterCmd = &cobra.Command{
-	Use:   "cluster",
-	Short: "Deploys and runs the chubao cluster. The cluster contains Master, MetaNode, DataNode, and Consul components",
+var operatorCmd = &cobra.Command{
+	Use: "operator",
+	Short: "Runs the Chubao operator for orchestrating and managing Chubao storage in a Kubernetes cluster",
+	Long: `Runs the Chubao operator for orchestrating and managing Chubao storage in a Kubernetes cluster
+https://github.com/rook/rook`,
 }
 
 func init() {
-	flags.SetFlagsFromEnv(clusterCmd.Flags(), rook.RookEnvVarPrefix)
-	flags.SetLoggingFlags(clusterCmd.Flags())
-	clusterCmd.RunE = startCluster
+	flags.SetFlagsFromEnv(operatorCmd.Flags(), rook.RookEnvVarPrefix)
+	flags.SetLoggingFlags(operatorCmd.Flags())
+	operatorCmd.RunE = startCluster
 }
 
 func startCluster(cmd *cobra.Command, args []string) error {
 	rook.SetLogLevel()
-	rook.LogStartupInfo(clusterCmd.Flags())
+	rook.LogStartupInfo(operatorCmd.Flags())
 
 	operatorNamespace := os.Getenv(k8sutil.PodNamespaceEnvVar)
 	if operatorNamespace == "" {

@@ -28,7 +28,7 @@ import (
 // ChubaoFSClusterLister helps list ChubaoFSClusters.
 type ChubaoFSClusterLister interface {
 	// List lists all ChubaoFSClusters in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.ChubaoFSCluster, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.ChubaoCluster, err error)
 	// ChubaoFSClusters returns an object that can list and get ChubaoFSClusters.
 	ChubaoFSClusters(namespace string) ChubaoFSClusterNamespaceLister
 	ChubaoFSClusterListerExpansion
@@ -45,9 +45,9 @@ func NewChubaoFSClusterLister(indexer cache.Indexer) ChubaoFSClusterLister {
 }
 
 // List lists all ChubaoFSClusters in the indexer.
-func (s *chubaoFSClusterLister) List(selector labels.Selector) (ret []*v1alpha1.ChubaoFSCluster, err error) {
+func (s *chubaoFSClusterLister) List(selector labels.Selector) (ret []*v1alpha1.ChubaoCluster, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.ChubaoFSCluster))
+		ret = append(ret, m.(*v1alpha1.ChubaoCluster))
 	})
 	return ret, err
 }
@@ -60,9 +60,9 @@ func (s *chubaoFSClusterLister) ChubaoFSClusters(namespace string) ChubaoFSClust
 // ChubaoFSClusterNamespaceLister helps list and get ChubaoFSClusters.
 type ChubaoFSClusterNamespaceLister interface {
 	// List lists all ChubaoFSClusters in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.ChubaoFSCluster, err error)
-	// Get retrieves the ChubaoFSCluster from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.ChubaoFSCluster, error)
+	List(selector labels.Selector) (ret []*v1alpha1.ChubaoCluster, err error)
+	// Get retrieves the ChubaoCluster from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.ChubaoCluster, error)
 	ChubaoFSClusterNamespaceListerExpansion
 }
 
@@ -74,15 +74,15 @@ type chubaoFSClusterNamespaceLister struct {
 }
 
 // List lists all ChubaoFSClusters in the indexer for a given namespace.
-func (s chubaoFSClusterNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.ChubaoFSCluster, err error) {
+func (s chubaoFSClusterNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.ChubaoCluster, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.ChubaoFSCluster))
+		ret = append(ret, m.(*v1alpha1.ChubaoCluster))
 	})
 	return ret, err
 }
 
-// Get retrieves the ChubaoFSCluster from the indexer for a given namespace and name.
-func (s chubaoFSClusterNamespaceLister) Get(name string) (*v1alpha1.ChubaoFSCluster, error) {
+// Get retrieves the ChubaoCluster from the indexer for a given namespace and name.
+func (s chubaoFSClusterNamespaceLister) Get(name string) (*v1alpha1.ChubaoCluster, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -90,5 +90,5 @@ func (s chubaoFSClusterNamespaceLister) Get(name string) (*v1alpha1.ChubaoFSClus
 	if !exists {
 		return nil, errors.NewNotFound(v1alpha1.Resource("chubaofscluster"), name)
 	}
-	return obj.(*v1alpha1.ChubaoFSCluster), nil
+	return obj.(*v1alpha1.ChubaoCluster), nil
 }

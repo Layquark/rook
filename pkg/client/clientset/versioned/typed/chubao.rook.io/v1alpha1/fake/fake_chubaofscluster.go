@@ -36,23 +36,23 @@ type FakeChubaoFSClusters struct {
 
 var chubaofsclustersResource = schema.GroupVersionResource{Group: "chubao.rook.io", Version: "v1alpha1", Resource: "chubaofsclusters"}
 
-var chubaofsclustersKind = schema.GroupVersionKind{Group: "chubao.rook.io", Version: "v1alpha1", Kind: "ChubaoFSCluster"}
+var chubaofsclustersKind = schema.GroupVersionKind{Group: "chubao.rook.io", Version: "v1alpha1", Kind: "ChubaoCluster"}
 
 // Get takes name of the chubaoFSCluster, and returns the corresponding chubaoFSCluster object, and an error if there is any.
-func (c *FakeChubaoFSClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ChubaoFSCluster, err error) {
+func (c *FakeChubaoFSClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ChubaoCluster, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(chubaofsclustersResource, c.ns, name), &v1alpha1.ChubaoFSCluster{})
+		Invokes(testing.NewGetAction(chubaofsclustersResource, c.ns, name), &v1alpha1.ChubaoCluster{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ChubaoFSCluster), err
+	return obj.(*v1alpha1.ChubaoCluster), err
 }
 
 // List takes label and field selectors, and returns the list of ChubaoFSClusters that match those selectors.
-func (c *FakeChubaoFSClusters) List(opts v1.ListOptions) (result *v1alpha1.ChubaoFSClusterList, err error) {
+func (c *FakeChubaoFSClusters) List(opts v1.ListOptions) (result *v1alpha1.ChubaoClusterList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(chubaofsclustersResource, chubaofsclustersKind, c.ns, opts), &v1alpha1.ChubaoFSClusterList{})
+		Invokes(testing.NewListAction(chubaofsclustersResource, chubaofsclustersKind, c.ns, opts), &v1alpha1.ChubaoClusterList{})
 
 	if obj == nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (c *FakeChubaoFSClusters) List(opts v1.ListOptions) (result *v1alpha1.Chuba
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.ChubaoFSClusterList{ListMeta: obj.(*v1alpha1.ChubaoFSClusterList).ListMeta}
-	for _, item := range obj.(*v1alpha1.ChubaoFSClusterList).Items {
+	list := &v1alpha1.ChubaoClusterList{ListMeta: obj.(*v1alpha1.ChubaoClusterList).ListMeta}
+	for _, item := range obj.(*v1alpha1.ChubaoClusterList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -79,31 +79,31 @@ func (c *FakeChubaoFSClusters) Watch(opts v1.ListOptions) (watch.Interface, erro
 }
 
 // Create takes the representation of a chubaoFSCluster and creates it.  Returns the server's representation of the chubaoFSCluster, and an error, if there is any.
-func (c *FakeChubaoFSClusters) Create(chubaoFSCluster *v1alpha1.ChubaoFSCluster) (result *v1alpha1.ChubaoFSCluster, err error) {
+func (c *FakeChubaoFSClusters) Create(chubaoFSCluster *v1alpha1.ChubaoCluster) (result *v1alpha1.ChubaoCluster, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(chubaofsclustersResource, c.ns, chubaoFSCluster), &v1alpha1.ChubaoFSCluster{})
+		Invokes(testing.NewCreateAction(chubaofsclustersResource, c.ns, chubaoFSCluster), &v1alpha1.ChubaoCluster{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ChubaoFSCluster), err
+	return obj.(*v1alpha1.ChubaoCluster), err
 }
 
 // Update takes the representation of a chubaoFSCluster and updates it. Returns the server's representation of the chubaoFSCluster, and an error, if there is any.
-func (c *FakeChubaoFSClusters) Update(chubaoFSCluster *v1alpha1.ChubaoFSCluster) (result *v1alpha1.ChubaoFSCluster, err error) {
+func (c *FakeChubaoFSClusters) Update(chubaoFSCluster *v1alpha1.ChubaoCluster) (result *v1alpha1.ChubaoCluster, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(chubaofsclustersResource, c.ns, chubaoFSCluster), &v1alpha1.ChubaoFSCluster{})
+		Invokes(testing.NewUpdateAction(chubaofsclustersResource, c.ns, chubaoFSCluster), &v1alpha1.ChubaoCluster{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ChubaoFSCluster), err
+	return obj.(*v1alpha1.ChubaoCluster), err
 }
 
 // Delete takes name of the chubaoFSCluster and deletes it. Returns an error if one occurs.
 func (c *FakeChubaoFSClusters) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(chubaofsclustersResource, c.ns, name), &v1alpha1.ChubaoFSCluster{})
+		Invokes(testing.NewDeleteAction(chubaofsclustersResource, c.ns, name), &v1alpha1.ChubaoCluster{})
 
 	return err
 }
@@ -112,17 +112,17 @@ func (c *FakeChubaoFSClusters) Delete(name string, options *v1.DeleteOptions) er
 func (c *FakeChubaoFSClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(chubaofsclustersResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.ChubaoFSClusterList{})
+	_, err := c.Fake.Invokes(action, &v1alpha1.ChubaoClusterList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched chubaoFSCluster.
-func (c *FakeChubaoFSClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoFSCluster, err error) {
+func (c *FakeChubaoFSClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoCluster, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(chubaofsclustersResource, c.ns, name, pt, data, subresources...), &v1alpha1.ChubaoFSCluster{})
+		Invokes(testing.NewPatchSubresourceAction(chubaofsclustersResource, c.ns, name, pt, data, subresources...), &v1alpha1.ChubaoCluster{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ChubaoFSCluster), err
+	return obj.(*v1alpha1.ChubaoCluster), err
 }

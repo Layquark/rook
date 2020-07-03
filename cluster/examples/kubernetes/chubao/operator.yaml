@@ -1,0 +1,70 @@
+#kind: ConfigMap
+#apiVersion: v1
+#metadata:
+#  name: rook-chubao-operator-config
+#  namespace: rook-chubao
+#data:
+#  # Enable the ChubaoFS CSI driver.
+#  ENABLE_CSI: "true"
+#
+#  # Enable the ChubaoFS console.
+#  ENABLE_CONSOLE: "true"
+#
+#  # Enable the ChubaoFS object store.
+#  ENABLE_OBJECTSTORE: "true"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rook-chubao-operator
+  namespace: rook-chubao
+spec:
+  serviceAccount: rook-chubao-operator
+  selector:
+    matchLabels:
+      app: rook-chubao-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rook-chubao-operator
+    spec:
+      #      serviceAccountName: rook-chubao-system
+      containers:
+        - name: rook-chubao-operator
+          image: rook/chubao:master
+          args: ["chubao", "operator"]
+          volumeMounts:
+            - mountPath: /var/lib/rook
+              name: rook-config
+          env:
+            # If the operator should only watch for cluster CRDs in the same namespace, set this to "true".
+            # If this is not set to true, the operator will watch for cluster CRDs in all namespaces.
+            - name: ROOK_CURRENT_NAMESPACE_ONLY
+              value: "false"
+
+            # The logging level for the operator: INFO | DEBUG
+            - name: ROOK_LOG_LEVEL
+              value: "INFO"
+
+            # The name of the node to pass with the downward API
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # The pod name to pass with the downward API
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # The pod namespace to pass with the downward API
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      # Uncomment it to run rook operator on the host network
+      #hostNetwork: true
+      volumes:
+        - name: rook-config
+          emptyDir: {}

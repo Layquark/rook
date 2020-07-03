@@ -18,16 +18,23 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"github.com/coreos/pkg/capnslog"
+	"github.com/pkg/errors"
+	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"github.com/rook/rook/pkg/clusterd"
+	"github.com/rook/rook/pkg/operator/chubao/master"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -44,7 +51,9 @@ var (
 )
 
 // List of object resources to watch by the controller
-var objectsToWatch = []runtime.Object{
+var ObjectsToWatch = []runtime.Object{
+	&appsv1.StatefulSet{TypeMeta: metav1.TypeMeta{Kind: "StatefulSet", APIVersion: appsv1.SchemeGroupVersion.String()}},
+	&appsv1.DaemonSet{TypeMeta: metav1.TypeMeta{Kind: "DaemonSet", APIVersion: appsv1.SchemeGroupVersion.String()}},
 	&appsv1.Deployment{TypeMeta: metav1.TypeMeta{Kind: "Deployment", APIVersion: appsv1.SchemeGroupVersion.String()}},
 	&corev1.Service{TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: corev1.SchemeGroupVersion.String()}},
 	&corev1.Secret{TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: corev1.SchemeGroupVersion.String()}},
@@ -52,10 +61,16 @@ var objectsToWatch = []runtime.Object{
 }
 
 // ControllerTypeMeta Sets the type meta for the controller main object
-//var ControllerTypeMeta = metav1.TypeMeta{
-//	Kind:       opcontroller.ClusterResource.Kind,
-//	APIVersion: opcontroller.ClusterResource.APIVersion,
-//}
+var NodeTypeMeta = metav1.TypeMeta{
+	Kind:       "Node",
+	APIVersion: corev1.SchemeGroupVersion.String(),
+}
+
+// ControllerTypeMeta Sets the type meta for the controller main object
+var ControllerTypeMeta = metav1.TypeMeta{
+	Kind:       reflect.TypeOf(chubaoapi.ChubaoCluster{}).Name(),
+	APIVersion: chubaoapi.Version,
+}
 
 // ClusterController controls an instance of a Rook cluster
 type ClusterController struct {
@@ -64,14 +79,12 @@ type ClusterController struct {
 	addClusterCallbacks     []func() error
 	csiConfigMutex          *sync.Mutex
 	nodeStore               cache.Store
-	//osdChecker              *osd.OSDHealthMonitor
-	client         client.Client
-	namespacedName types.NamespacedName
-	clusterMap     map[string]*cluster
+	namespacedName          types.NamespacedName
+	clusterMap              map[string]*cluster
 }
 
-// ReconcileChubaoFSCluster reconciles a CephFilesystem object
-type ReconcileChubaoFSCluster struct {
+// ReconcileChubaoCluster reconciles a CephFilesystem object
+type ReconcileChubaoCluster struct {
 	client            client.Client
 	scheme            *runtime.Scheme
 	context           *clusterd.Context
@@ -81,11 +94,13 @@ type ReconcileChubaoFSCluster struct {
 // Add creates a new CephCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, context *clusterd.Context, clusterController *ClusterController) error {
-	return add(mgr, newReconciler(mgr, context, clusterController), context)
+	return add(mgr, newReconciler(mgr, context, clusterController))
 }
 
 func newReconciler(mgr manager.Manager, context *clusterd.Context, clusterController *ClusterController) reconcile.Reconciler {
-	return &ReconcileChubaoFSCluster{
+	chubaoapi.AddToScheme(mgr.GetScheme())
+
+	return &ReconcileChubaoCluster{
 		client:            mgr.GetClient(),
 		scheme:            mgr.GetScheme(),
 		context:           context,
@@ -93,7 +108,7 @@ func newReconciler(mgr manager.Manager, context *clusterd.Context, clusterContro
 	}
 }
 
-func add(mgr manager.Manager, r reconcile.Reconciler, context *clusterd.Context) error {
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -103,46 +118,55 @@ func add(mgr manager.Manager, r reconcile.Reconciler, context *clusterd.Context)
 
 	// Watch for changes on the CephCluster CR object
 	err = c.Watch(
-		&source.Kind{
-			//Type: &chubao_v1alpha1.ChubaoFSCluster{
-			//	TypeMeta: ControllerTypeMeta,
-			//},
-		},
+		&source.Kind{Type: &chubaoapi.ChubaoCluster{TypeMeta: ControllerTypeMeta}},
 		&handler.EnqueueRequestForObject{},
 	)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// Reconcile reads that state of the cluster for a CephCluster object and makes changes based on the state read
-// and what is in the cephCluster.Spec
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileChubaoFSCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// workaround because the rook logging mechanism is not compatible with the controller-runtime loggin interface
-	reconcileResponse, err := r.reconcile(request)
-	if err != nil {
-		logger.Errorf("failed to reconcile. %v", err)
+	// Watch all other resources of the Chubao Cluster
+	for _, t := range ObjectsToWatch {
+		err = c.Watch(
+			&source.Kind{Type: t},
+			&handler.EnqueueRequestForOwner{IsController: true, OwnerType: &chubaoapi.ChubaoCluster{}},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
-	return reconcileResponse, err
+	return err
 }
 
-func (r *ReconcileChubaoFSCluster) reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Pass the client context to the ClusterController
-	r.clusterController.client = r.client
-
-	// Used by functions not part of the ClusterController struct but are given the context to execute actions
-	r.clusterController.context.Client = r.client
-
-	// Pass object name and namespace
+func (r *ReconcileChubaoCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	logger.Infof("Reconciling ChubaoCluster:%s", request.String())
 	r.clusterController.namespacedName = request.NamespacedName
-	//
+	cluster := &chubaoapi.ChubaoCluster{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, cluster)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			logger.Debug("chubaofsCluster resource not found. Ignoring since object must be deleted.")
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, errors.Wrap(err, "failed to get ChubaoCluster")
+	}
 
-	// Return and do not requeue
+	// Define a new Pod object
+	pod := master.NewMasterForCR(cluster)
+
+	// Set Memcached instance as the owner and controller
+	if err := controllerutil.SetControllerReference(cluster, pod, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Check if this Pod already exists
+	found := &corev1.Pod{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
+
+	// Pod already exists - don't requeue
+	logger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 

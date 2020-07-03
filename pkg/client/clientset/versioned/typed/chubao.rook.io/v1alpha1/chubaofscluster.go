@@ -35,16 +35,16 @@ type ChubaoFSClustersGetter interface {
 	ChubaoFSClusters(namespace string) ChubaoFSClusterInterface
 }
 
-// ChubaoFSClusterInterface has methods to work with ChubaoFSCluster resources.
+// ChubaoFSClusterInterface has methods to work with ChubaoCluster resources.
 type ChubaoFSClusterInterface interface {
-	Create(*v1alpha1.ChubaoFSCluster) (*v1alpha1.ChubaoFSCluster, error)
-	Update(*v1alpha1.ChubaoFSCluster) (*v1alpha1.ChubaoFSCluster, error)
+	Create(*v1alpha1.ChubaoCluster) (*v1alpha1.ChubaoCluster, error)
+	Update(*v1alpha1.ChubaoCluster) (*v1alpha1.ChubaoCluster, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.ChubaoFSCluster, error)
-	List(opts v1.ListOptions) (*v1alpha1.ChubaoFSClusterList, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.ChubaoCluster, error)
+	List(opts v1.ListOptions) (*v1alpha1.ChubaoClusterList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoFSCluster, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoCluster, err error)
 	ChubaoFSClusterExpansion
 }
 
@@ -63,8 +63,8 @@ func newChubaoFSClusters(c *ChubaoV1alpha1Client, namespace string) *chubaoFSClu
 }
 
 // Get takes name of the chubaoFSCluster, and returns the corresponding chubaoFSCluster object, and an error if there is any.
-func (c *chubaoFSClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ChubaoFSCluster, err error) {
-	result = &v1alpha1.ChubaoFSCluster{}
+func (c *chubaoFSClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ChubaoCluster, err error) {
+	result = &v1alpha1.ChubaoCluster{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("chubaofsclusters").
@@ -76,12 +76,12 @@ func (c *chubaoFSClusters) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of ChubaoFSClusters that match those selectors.
-func (c *chubaoFSClusters) List(opts v1.ListOptions) (result *v1alpha1.ChubaoFSClusterList, err error) {
+func (c *chubaoFSClusters) List(opts v1.ListOptions) (result *v1alpha1.ChubaoClusterList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
-	result = &v1alpha1.ChubaoFSClusterList{}
+	result = &v1alpha1.ChubaoClusterList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("chubaofsclusters").
@@ -108,8 +108,8 @@ func (c *chubaoFSClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a chubaoFSCluster and creates it.  Returns the server's representation of the chubaoFSCluster, and an error, if there is any.
-func (c *chubaoFSClusters) Create(chubaoFSCluster *v1alpha1.ChubaoFSCluster) (result *v1alpha1.ChubaoFSCluster, err error) {
-	result = &v1alpha1.ChubaoFSCluster{}
+func (c *chubaoFSClusters) Create(chubaoFSCluster *v1alpha1.ChubaoCluster) (result *v1alpha1.ChubaoCluster, err error) {
+	result = &v1alpha1.ChubaoCluster{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("chubaofsclusters").
@@ -120,8 +120,8 @@ func (c *chubaoFSClusters) Create(chubaoFSCluster *v1alpha1.ChubaoFSCluster) (re
 }
 
 // Update takes the representation of a chubaoFSCluster and updates it. Returns the server's representation of the chubaoFSCluster, and an error, if there is any.
-func (c *chubaoFSClusters) Update(chubaoFSCluster *v1alpha1.ChubaoFSCluster) (result *v1alpha1.ChubaoFSCluster, err error) {
-	result = &v1alpha1.ChubaoFSCluster{}
+func (c *chubaoFSClusters) Update(chubaoFSCluster *v1alpha1.ChubaoCluster) (result *v1alpha1.ChubaoCluster, err error) {
+	result = &v1alpha1.ChubaoCluster{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("chubaofsclusters").
@@ -160,8 +160,8 @@ func (c *chubaoFSClusters) DeleteCollection(options *v1.DeleteOptions, listOptio
 }
 
 // Patch applies the patch and returns the patched chubaoFSCluster.
-func (c *chubaoFSClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoFSCluster, err error) {
-	result = &v1alpha1.ChubaoFSCluster{}
+func (c *chubaoFSClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ChubaoCluster, err error) {
+	result = &v1alpha1.ChubaoCluster{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("chubaofsclusters").

@@ -49,11 +49,7 @@ type config struct {
 }
 
 func init() {
-	Cmd.AddCommand(
-		clusterCmd,
-		objectStoreCmd,
-		monitorCmd,
-		consoleCmd)
+	Cmd.AddCommand(operatorCmd)
 }
 
 func createContext() *clusterd.Context {

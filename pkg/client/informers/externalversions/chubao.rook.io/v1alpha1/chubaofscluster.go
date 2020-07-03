@@ -44,14 +44,14 @@ type chubaoFSClusterInformer struct {
 	namespace        string
 }
 
-// NewChubaoFSClusterInformer constructs a new informer for ChubaoFSCluster type.
+// NewChubaoFSClusterInformer constructs a new informer for ChubaoCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewChubaoFSClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewFilteredChubaoFSClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredChubaoFSClusterInformer constructs a new informer for ChubaoFSCluster type.
+// NewFilteredChubaoFSClusterInformer constructs a new informer for ChubaoCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredChubaoFSClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
@@ -70,7 +70,7 @@ func NewFilteredChubaoFSClusterInformer(client versioned.Interface, namespace st
 				return client.ChubaoV1alpha1().ChubaoFSClusters(namespace).Watch(options)
 			},
 		},
-		&chubaorookiov1alpha1.ChubaoFSCluster{},
+		&chubaorookiov1alpha1.ChubaoCluster{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,7 +81,7 @@ func (f *chubaoFSClusterInformer) defaultInformer(client versioned.Interface, re
 }
 
 func (f *chubaoFSClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&chubaorookiov1alpha1.ChubaoFSCluster{}, f.defaultInformer)
+	return f.factory.InformerFor(&chubaorookiov1alpha1.ChubaoCluster{}, f.defaultInformer)
 }
 
 func (f *chubaoFSClusterInformer) Lister() v1alpha1.ChubaoFSClusterLister {
