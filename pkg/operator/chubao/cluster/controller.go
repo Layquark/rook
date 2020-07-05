@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -39,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sync"
 )
 
 const (
@@ -72,39 +70,18 @@ var ControllerTypeMeta = metav1.TypeMeta{
 	APIVersion: chubaoapi.Version,
 }
 
-// ClusterController controls an instance of a Rook cluster
-type ClusterController struct {
-	context                 *clusterd.Context
-	operatorConfigCallbacks []func() error
-	addClusterCallbacks     []func() error
-	csiConfigMutex          *sync.Mutex
-	nodeStore               cache.Store
-	namespacedName          types.NamespacedName
-	clusterMap              map[string]*cluster
-}
-
-// ReconcileChubaoCluster reconciles a CephFilesystem object
+// ReconcileChubaoCluster reconciles a ChubaoFS cluster
 type ReconcileChubaoCluster struct {
-	client            client.Client
-	scheme            *runtime.Scheme
-	context           *clusterd.Context
-	clusterController *ClusterController
+	client  client.Client
+	scheme  *runtime.Scheme
+	context *clusterd.Context
 }
 
-// Add creates a new CephCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager, context *clusterd.Context, clusterController *ClusterController) error {
-	return add(mgr, newReconciler(mgr, context, clusterController))
-}
-
-func newReconciler(mgr manager.Manager, context *clusterd.Context, clusterController *ClusterController) reconcile.Reconciler {
-	chubaoapi.AddToScheme(mgr.GetScheme())
-
+func newReconciler(mgr manager.Manager, context *clusterd.Context) reconcile.Reconciler {
 	return &ReconcileChubaoCluster{
-		client:            mgr.GetClient(),
-		scheme:            mgr.GetScheme(),
-		context:           context,
-		clusterController: clusterController,
+		client:  mgr.GetClient(),
+		scheme:  mgr.GetScheme(),
+		context: context,
 	}
 }
 
@@ -116,7 +93,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 	logger.Info("successfully started")
 
-	// Watch for changes on the CephCluster CR object
+	// Watch for changes on the ChubaoCluster CR object
 	err = c.Watch(
 		&source.Kind{Type: &chubaoapi.ChubaoCluster{TypeMeta: ControllerTypeMeta}},
 		&handler.EnqueueRequestForObject{},
@@ -141,12 +118,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *ReconcileChubaoCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	logger.Infof("Reconciling ChubaoCluster:%s", request.String())
-	r.clusterController.namespacedName = request.NamespacedName
 	cluster := &chubaoapi.ChubaoCluster{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, cluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			logger.Debug("chubaofsCluster resource not found. Ignoring since object must be deleted.")
+			logger.Debug("ChubaoCluster resource not found. Ignoring since object must be deleted.")
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -168,23 +144,4 @@ func (r *ReconcileChubaoCluster) Reconcile(request reconcile.Request) (reconcile
 	// Pod already exists - don't requeue
 	logger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
-}
-
-// NewClusterController create controller for watching cluster custom resources created
-func NewClusterController(context *clusterd.Context, operatorConfigCallbacks []func() error, addClusterCallbacks []func() error) *ClusterController {
-	return &ClusterController{
-		context:                 context,
-		operatorConfigCallbacks: operatorConfigCallbacks,
-		addClusterCallbacks:     addClusterCallbacks,
-		csiConfigMutex:          &sync.Mutex{},
-		clusterMap:              make(map[string]*cluster),
-	}
-}
-
-// StopWatch stop watchers
-func (c *ClusterController) StopWatch() {
-	for _, cluster := range c.clusterMap {
-		close(cluster.stopCh)
-	}
-	c.clusterMap = make(map[string]*cluster)
 }

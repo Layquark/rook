@@ -88,8 +88,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Ceph().V1().CephRBDMirrors().Informer()}, nil
 
 		// Group=chubao.rook.io, Version=v1alpha1
-	case chubaorookiov1alpha1.SchemeGroupVersion.WithResource("chubaofsclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Chubao().V1alpha1().ChubaoFSClusters().Informer()}, nil
+	case chubaorookiov1alpha1.SchemeGroupVersion.WithResource("chubaoclusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Chubao().V1alpha1().ChubaoClusters().Informer()}, nil
 
 		// Group=cockroachdb.rook.io, Version=v1alpha1
 	case cockroachdbrookiov1alpha1.SchemeGroupVersion.WithResource("clusters"):

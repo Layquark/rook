@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// ChubaoFSClusters returns a ChubaoFSClusterInformer.
-	ChubaoFSClusters() ChubaoFSClusterInformer
+	// ChubaoClusters returns a ChubaoClusterInformer.
+	ChubaoClusters() ChubaoClusterInformer
 }
 
 type version struct {
@@ -39,7 +39,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// ChubaoFSClusters returns a ChubaoFSClusterInformer.
-func (v *version) ChubaoFSClusters() ChubaoFSClusterInformer {
-	return &chubaoFSClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// ChubaoClusters returns a ChubaoClusterInformer.
+func (v *version) ChubaoClusters() ChubaoClusterInformer {
+	return &chubaoClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -18,7 +18,7 @@ limitations under the License.
 package chubao
 
 import (
-	"fmt"
+	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"os"
 	"os/signal"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -41,35 +41,22 @@ var (
 
 // Operator type for managing storage
 type Operator struct {
-	context               *clusterd.Context
-	resources             []k8sutil.CustomResource
-	operatorNamespace     string
-	clusterController     *cluster.ClusterController
-	delayedDaemonsStarted bool
+	context           *clusterd.Context
+	resources         []k8sutil.CustomResource
+	operatorNamespace string
 }
 
 // New creates an operator instance
 func New(context *clusterd.Context, operatorNamespace string) *Operator {
-	o := &Operator{
+	return &Operator{
 		context:           context,
 		resources:         []k8sutil.CustomResource{cluster.ChubaoClusterResource},
 		operatorNamespace: operatorNamespace,
 	}
-
-	operatorConfigCallbacks := []func() error{
-		o.updateDrivers,
-	}
-	addCallbacks := []func() error{
-		o.startDrivers,
-	}
-
-	o.clusterController = cluster.NewClusterController(context, operatorConfigCallbacks, addCallbacks)
-	return o
 }
 
 func (o *Operator) cleanup(stopCh chan struct{}) {
 	close(stopCh)
-	o.clusterController.StopWatch()
 }
 
 // Run the operator instance
@@ -111,48 +98,6 @@ func (o *Operator) getNamespaceForWatch() string {
 	return namespaceToWatch
 }
 
-func (o *Operator) startDrivers() error {
-	fmt.Println("startDrivers")
-	logger.Infof("startDrivers")
-	//if o.delayedDaemonsStarted {
-	//	return nil
-	//}
-	//
-	//o.delayedDaemonsStarted = true
-	//if err := o.updateDrivers(); err != nil {
-	//	o.delayedDaemonsStarted = false // unset because failed to updateDrivers
-	//	return err
-	//}
-
-	return nil
-}
-
-func (o *Operator) updateDrivers() error {
-	fmt.Println("updateDrivers")
-	logger.Infof("updateDrivers")
-	//var err error
-	//
-	//// Skipping CSI driver update since the first cluster hasn't been started yet
-	//if !o.delayedDaemonsStarted {
-	//	return nil
-	//}
-	//
-	//if o.operatorNamespace == "" {
-	//	return errors.Errorf("rook operator namespace is not provided. expose it via downward API in the rook operator manifest file using environment variable %s", k8sutil.PodNamespaceEnvVar)
-	//}
-	//
-	//ownerRef, err := getDeploymentOwnerReference(o.context.Clientset, o.operatorNamespace)
-	//if err != nil {
-	//	logger.Warningf("could not find deployment owner reference to assign to csi drivers. %v", err)
-	//}
-	//if ownerRef != nil {
-	//	blockOwnerDeletion := false
-	//	ownerRef.BlockOwnerDeletion = &blockOwnerDeletion
-	//}
-
-	return nil
-}
-
 func (o *Operator) startManager(namespaceToWatch string, stopCh <-chan struct{}, mgrErrorCh chan error) {
 	// Set up a manager
 	mgrOpts := manager.Options{
@@ -161,14 +106,21 @@ func (o *Operator) startManager(namespaceToWatch string, stopCh <-chan struct{},
 	}
 
 	logger.Info("setting up the controller-runtime manager")
+	// Create a new manager to provide shared dependencies and start components
 	mgr, err := manager.New(o.context.KubeConfig, mgrOpts)
 	if err != nil {
 		mgrErrorCh <- errors.Wrap(err, "failed to set up overall controller-runtime manager")
 		return
 	}
 
-	err = cluster.Add(mgr, o.context, o.clusterController)
-	if err != nil {
+	// Setup Scheme for all resources
+	if err = chubaoapi.AddToScheme(mgr.GetScheme()); err != nil {
+		mgrErrorCh <- errors.Wrap(err, "failed to set up overall controller-runtime manager")
+		return
+	}
+
+	// Setup all Controllers
+	if err = AddToManager(mgr, o.context); err != nil {
 		mgrErrorCh <- errors.Wrap(err, "failed to add controllers to controller-runtime manager")
 		return
 	}

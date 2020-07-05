@@ -31,43 +31,43 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ChubaoFSClusterInformer provides access to a shared informer and lister for
-// ChubaoFSClusters.
-type ChubaoFSClusterInformer interface {
+// ChubaoClusterInformer provides access to a shared informer and lister for
+// ChubaoClusters.
+type ChubaoClusterInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.ChubaoFSClusterLister
+	Lister() v1alpha1.ChubaoClusterLister
 }
 
-type chubaoFSClusterInformer struct {
+type chubaoClusterInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewChubaoFSClusterInformer constructs a new informer for ChubaoCluster type.
+// NewChubaoClusterInformer constructs a new informer for ChubaoCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewChubaoFSClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredChubaoFSClusterInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewChubaoClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredChubaoClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredChubaoFSClusterInformer constructs a new informer for ChubaoCluster type.
+// NewFilteredChubaoClusterInformer constructs a new informer for ChubaoCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredChubaoFSClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredChubaoClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ChubaoV1alpha1().ChubaoFSClusters(namespace).List(options)
+				return client.ChubaoV1alpha1().ChubaoClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ChubaoV1alpha1().ChubaoFSClusters(namespace).Watch(options)
+				return client.ChubaoV1alpha1().ChubaoClusters(namespace).Watch(options)
 			},
 		},
 		&chubaorookiov1alpha1.ChubaoCluster{},
@@ -76,14 +76,14 @@ func NewFilteredChubaoFSClusterInformer(client versioned.Interface, namespace st
 	)
 }
 
-func (f *chubaoFSClusterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredChubaoFSClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *chubaoClusterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredChubaoClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *chubaoFSClusterInformer) Informer() cache.SharedIndexInformer {
+func (f *chubaoClusterInformer) Informer() cache.SharedIndexInformer {
 	return f.factory.InformerFor(&chubaorookiov1alpha1.ChubaoCluster{}, f.defaultInformer)
 }
 
-func (f *chubaoFSClusterInformer) Lister() v1alpha1.ChubaoFSClusterLister {
-	return v1alpha1.NewChubaoFSClusterLister(f.Informer().GetIndexer())
+func (f *chubaoClusterInformer) Lister() v1alpha1.ChubaoClusterLister {
+	return v1alpha1.NewChubaoClusterLister(f.Informer().GetIndexer())
 }

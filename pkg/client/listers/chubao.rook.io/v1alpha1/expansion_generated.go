@@ -18,10 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
-// ChubaoFSClusterListerExpansion allows custom methods to be added to
-// ChubaoFSClusterLister.
-type ChubaoFSClusterListerExpansion interface{}
+// ChubaoClusterListerExpansion allows custom methods to be added to
+// ChubaoClusterLister.
+type ChubaoClusterListerExpansion interface{}
 
-// ChubaoFSClusterNamespaceListerExpansion allows custom methods to be added to
-// ChubaoFSClusterNamespaceLister.
-type ChubaoFSClusterNamespaceListerExpansion interface{}
+// ChubaoClusterNamespaceListerExpansion allows custom methods to be added to
+// ChubaoClusterNamespaceLister.
+type ChubaoClusterNamespaceListerExpansion interface{}

@@ -33,7 +33,8 @@ import (
 type ChubaoCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              ChubaoFSSpec `json:"spec"`
+	Spec              ClusterSpec   `json:"spec"`
+	Status            ClusterStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -44,13 +45,75 @@ type ChubaoClusterList struct {
 	Items           []ChubaoCluster `json:"items"`
 }
 
-type ChubaoFSSpec struct {
+type ConditionType string
+
+const (
+	ConditionIgnored     ConditionType = "Ignored"
+	ConditionConnecting  ConditionType = "Connecting"
+	ConditionConnected   ConditionType = "Connected"
+	ConditionProgressing ConditionType = "Progressing"
+	ConditionReady       ConditionType = "Ready"
+	ConditionUpdating    ConditionType = "Updating"
+	ConditionFailure     ConditionType = "Failure"
+	ConditionUpgrading   ConditionType = "Upgrading"
+	ConditionDeleting    ConditionType = "Deleting"
+)
+
+type ClusterState string
+
+const (
+	ClusterStateCreating   ClusterState = "Creating"
+	ClusterStateCreated    ClusterState = "Created"
+	ClusterStateUpdating   ClusterState = "Updating"
+	ClusterStateConnecting ClusterState = "Connecting"
+	ClusterStateConnected  ClusterState = "Connected"
+	ClusterStateError      ClusterState = "Error"
+)
+
+type ClusterStatus struct {
+	State       ClusterState    `json:"state,omitempty"`
+	Phase       ConditionType   `json:"phase,omitempty"`
+	Message     string          `json:"message,omitempty"`
+	Conditions  []Condition     `json:"conditions,omitempty"`
+	ChubaoStatus  *ChubaoStatus     `json:"chubao,omitempty"`
+	ChubaoVersion *ClusterVersion `json:"version,omitempty"`
+}
+
+type Condition struct {
+	Type               ConditionType      `json:"type,omitempty"`
+	Status             v1.ConditionStatus `json:"status,omitempty"`
+	Reason             string             `json:"reason,omitempty"`
+	Message            string             `json:"message,omitempty"`
+	LastHeartbeatTime  metav1.Time        `json:"lastHeartbeatTime,omitempty"`
+	LastTransitionTime metav1.Time        `json:"lastTransitionTime,omitempty"`
+}
+
+type ClusterSpec struct {
 	CFSVersion      CFSVersionSpec `json:"cfsVersion,omitempty"`
 	DataDirHostPath string         `json:"dataDirHostPath,omitempty"`
 	LogDirHostPath  string         `json:"logDirHostPath,omitempty"`
 	Master          MasterSpec     `json:"master"`
 	MetaNode        MetaNodeSpec   `json:"metaNode"`
 	DataNode        DataNodeSpec   `json:"dataNode"`
+}
+
+
+type ChubaoStatus struct {
+	Health         string                       `json:"health,omitempty"`
+	Details        map[string]ChubaoHealthMessage `json:"details,omitempty"`
+	LastChecked    string                       `json:"lastChecked,omitempty"`
+	LastChanged    string                       `json:"lastChanged,omitempty"`
+	PreviousHealth string                       `json:"previousHealth,omitempty"`
+}
+
+type ClusterVersion struct {
+	Image   string `json:"image,omitempty"`
+	Version string `json:"version,omitempty"`
+}
+
+type ChubaoHealthMessage struct {
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
 }
 
 // VersionSpec represents the settings for the cfs-server version that Rook is orchestrating.

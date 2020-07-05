@@ -1,8 +1,8 @@
 apiVersion: chubao.rook.io/v1alpha1
-kind: Cluster
+kind: ChubaoCluster
 metadata:
-  name: rook-chubao
-  namespace: chubao
+  name: mycluster
+  namespace: rook-chubao
 spec:
   cfsVersion:
     serverImage: chubaofs/cfs-server:2.0.5
@@ -24,7 +24,7 @@ spec:
     port: 17010
     prof: 17020
     exporterPort: 9500
-    metanodeReservedMem: "67108864"
+    metanodeReservedMem: 67108864
 #    resources:
 #      requests:
 #        memory: "8Gi"
@@ -36,7 +36,7 @@ spec:
     nodeSelector:
       chuabaofs-metanode: enabled
     logLevel: info
-    totalMem: "26843545600"
+    totalMem: 26843545600
     port: 17210
     prof: 17220
     raftHeartbeat: 17230

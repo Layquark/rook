@@ -28,8 +28,8 @@ type FakeChubaoV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeChubaoV1alpha1) ChubaoFSClusters(namespace string) v1alpha1.ChubaoFSClusterInterface {
-	return &FakeChubaoFSClusters{c, namespace}
+func (c *FakeChubaoV1alpha1) ChubaoClusters(namespace string) v1alpha1.ChubaoClusterInterface {
+	return &FakeChubaoClusters{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

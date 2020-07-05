@@ -26,7 +26,7 @@ import (
 
 type ChubaoV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	ChubaoFSClustersGetter
+	ChubaoClustersGetter
 }
 
 // ChubaoV1alpha1Client is used to interact with features provided by the chubao.rook.io group.
@@ -34,8 +34,8 @@ type ChubaoV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ChubaoV1alpha1Client) ChubaoFSClusters(namespace string) ChubaoFSClusterInterface {
-	return newChubaoFSClusters(c, namespace)
+func (c *ChubaoV1alpha1Client) ChubaoClusters(namespace string) ChubaoClusterInterface {
+	return newChubaoClusters(c, namespace)
 }
 
 // NewForConfig creates a new ChubaoV1alpha1Client for the given config.

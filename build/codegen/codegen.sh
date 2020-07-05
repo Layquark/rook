@@ -36,6 +36,7 @@ bash ${codegendir}/generate-groups.sh \
     --output-base "${scriptdir}/../../vendor" \
     --go-header-file "${scriptdir}/boilerplate.go.txt"
 cp -r "${scriptdir}/../../vendor/github.com/rook/rook/pkg" "${scriptdir}/../../"
+rm -rf "${scriptdir}/../../vendor/github.com/rook/rook/pkg"
 
 SED="sed -i.bak"
 

@@ -1,8 +1,8 @@
 apiVersion: chubao.rook.io/v1alpha1
-kind: ChubaoFSCluster
+kind: ChubaoCluster
 metadata:
-  name: rook-chubao
-  namespace: chubao
+  name: mycluster
+  namespace: rook-chubao
 spec:
   cfsVersion:
     serverImage: chubaofs/cfs-server:2.0.5
@@ -12,11 +12,11 @@ spec:
     cluster: my-cluster
     nodeSelector:
       chuabaofs-master: enabled
-    metanodeReservedMem: "67108864"
+    metanodeReservedMem: 67108864
   metaNode:
     nodeSelector:
       chuabaofs-metanode: enabled
-    totalMem: "26843545600"
+    totalMem: 26843545600
   dataNode:
     nodeSelector:
       chuabaofs-datanode: enabled
