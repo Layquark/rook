@@ -19,10 +19,9 @@ package chubao
 import (
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
-
-	"github.com/rook/rook/cmd/rook/rook"
-	"github.com/rook/rook/pkg/clusterd"
 )
+
+var logger = capnslog.NewPackageLogger("github.com/rook/rook", "chubaocmd")
 
 // Cmd is the main command for operator and daemons.
 var Cmd = &cobra.Command{
@@ -30,36 +29,6 @@ var Cmd = &cobra.Command{
 	Short: "Main command for Chubao operator and daemons.",
 }
 
-var (
-	cfg    = &config{}
-	logger = capnslog.NewPackageLogger("github.com/rook/rook", "chubaocmd")
-)
-
-type config struct {
-	devices            string
-	metadataDevice     string
-	dataDir            string
-	forceFormat        bool
-	location           string
-	cephConfigOverride string
-	networkInfo        clusterd.NetworkInfo
-	monEndpoints       string
-	nodeName           string
-	pvcBacked          bool
-}
-
 func init() {
 	Cmd.AddCommand(operatorCmd)
-}
-
-func createContext() *clusterd.Context {
-	context := rook.NewContext()
-	context.ConfigDir = cfg.dataDir
-	context.ConfigFileOverride = cfg.cephConfigOverride
-	context.NetworkInfo = cfg.NetworkInfo()
-	return context
-}
-
-func (c *config) NetworkInfo() clusterd.NetworkInfo {
-	return c.networkInfo.Simplify()
 }

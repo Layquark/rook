@@ -19,16 +19,15 @@ package chubao
 import (
 	"github.com/pkg/errors"
 	"github.com/rook/rook/cmd/rook/rook"
-	"github.com/rook/rook/pkg/clusterd"
-	"github.com/rook/rook/pkg/operator/chubao"
+	"github.com/rook/rook/pkg/operator/chubao/controller"
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	"github.com/rook/rook/pkg/util/flags"
 	"github.com/spf13/cobra"
-	"os"
+	"k8s.io/apiserver/pkg/server"
 )
 
 var operatorCmd = &cobra.Command{
-	Use: "operator",
+	Use:   "operator",
 	Short: "Runs the Chubao operator for orchestrating and managing Chubao storage in a Kubernetes cluster",
 	Long: `Runs the Chubao operator for orchestrating and managing Chubao storage in a Kubernetes cluster
 https://github.com/rook/rook`,
@@ -44,20 +43,32 @@ func startCluster(cmd *cobra.Command, args []string) error {
 	rook.SetLogLevel()
 	rook.LogStartupInfo(operatorCmd.Flags())
 
-	operatorNamespace := os.Getenv(k8sutil.PodNamespaceEnvVar)
-	if operatorNamespace == "" {
-		rook.TerminateFatal(errors.Errorf("rook operator namespace is not provided. expose it via downward API in the rook operator manifest file using environment variable %q", k8sutil.PodNamespaceEnvVar))
-	}
+	//operatorNamespace := os.Getenv(k8sutil.PodNamespaceEnvVar)
+	//if operatorNamespace == "" {
+	//	rook.TerminateFatal(errors.Errorf("rook operator namespace is not provided. expose it via downward API in the rook operator manifest file using environment variable %q", k8sutil.PodNamespaceEnvVar))
+	//}
+
+	// Create a channel to receive OS signals
+	stopCh := server.SetupSignalHandler()
 
 	logger.Info("starting Rook Chubao operator")
-	context := createContext()
-	context.NetworkInfo = clusterd.NetworkInfo{}
+	context := rook.NewContext()
 	context.ConfigDir = k8sutil.DataDir
-	operator := chubao.New(context, operatorNamespace)
-	err := operator.Run()
+	context.LogLevel = rook.Cfg.LogLevel
+	//operator := chubao.New(context, operatorNamespace)
+	//err := operator.Run(stopCh)
+	//if err != nil {
+	//	rook.TerminateFatal(errors.Wrap(err, "failed to run operator\n"))
+	//}
+
+	c := controller.New(context, "")
+	err := c.Run(1, stopCh)
 	if err != nil {
 		rook.TerminateFatal(errors.Wrap(err, "failed to run operator\n"))
 	}
 
+	// Signal handler to stop the operator
+	<-stopCh
+	logger.Info("shutdown signal received, exiting...")
 	return nil
 }

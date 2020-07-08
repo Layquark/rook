@@ -26,6 +26,10 @@ import (
 type Interface interface {
 	// ChubaoClusters returns a ChubaoClusterInformer.
 	ChubaoClusters() ChubaoClusterInformer
+	// ChubaoMonitors returns a ChubaoMonitorInformer.
+	ChubaoMonitors() ChubaoMonitorInformer
+	// ChubaoObjectStores returns a ChubaoObjectStoreInformer.
+	ChubaoObjectStores() ChubaoObjectStoreInformer
 }
 
 type version struct {
@@ -42,4 +46,14 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // ChubaoClusters returns a ChubaoClusterInformer.
 func (v *version) ChubaoClusters() ChubaoClusterInformer {
 	return &chubaoClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ChubaoMonitors returns a ChubaoMonitorInformer.
+func (v *version) ChubaoMonitors() ChubaoMonitorInformer {
+	return &chubaoMonitorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ChubaoObjectStores returns a ChubaoObjectStoreInformer.
+func (v *version) ChubaoObjectStores() ChubaoObjectStoreInformer {
+	return &chubaoObjectStoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

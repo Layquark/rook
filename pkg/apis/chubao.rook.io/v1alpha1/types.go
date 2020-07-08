@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -70,13 +71,22 @@ const (
 	ClusterStateError      ClusterState = "Error"
 )
 
+type CleanupPolicy string
+
+const (
+	CleanupPolicyDeleteLog        CleanupPolicy = "DeleteLog"
+	CleanupPolicyDeleteData       CleanupPolicy = "DeleteData"
+	CleanupPolicyDeleteDataAndLog CleanupPolicy = "DeleteDataAndLog"
+	CleanupPolicyDeleteDiskData   CleanupPolicy = "DeleteDiskData"
+	CleanupPolicyDeleteAll        CleanupPolicy = "DeleteAll"
+)
+
 type ClusterStatus struct {
-	State       ClusterState    `json:"state,omitempty"`
-	Phase       ConditionType   `json:"phase,omitempty"`
-	Message     string          `json:"message,omitempty"`
-	Conditions  []Condition     `json:"conditions,omitempty"`
-	ChubaoStatus  *ChubaoStatus     `json:"chubao,omitempty"`
-	ChubaoVersion *ClusterVersion `json:"version,omitempty"`
+	State        ClusterState  `json:"state,omitempty"`
+	Phase        ConditionType `json:"phase,omitempty"`
+	Message      string        `json:"message,omitempty"`
+	Conditions   []Condition   `json:"conditions,omitempty"`
+	ChubaoStatus *ChubaoStatus `json:"chubao,omitempty"`
 }
 
 type Condition struct {
@@ -90,25 +100,31 @@ type Condition struct {
 
 type ClusterSpec struct {
 	CFSVersion      CFSVersionSpec `json:"cfsVersion,omitempty"`
-	DataDirHostPath string         `json:"dataDirHostPath,omitempty"`
-	LogDirHostPath  string         `json:"logDirHostPath,omitempty"`
-	Master          MasterSpec     `json:"master"`
-	MetaNode        MetaNodeSpec   `json:"metaNode"`
-	DataNode        DataNodeSpec   `json:"dataNode"`
+	DataDirHostPath string         `json:"dataDirHostPath"`
+	LogDirHostPath  string         `json:"logDirHostPath"`
+	Master          MasterSpec     `json:"master,omitempty"`
+	MetaNode        MetaNodeSpec   `json:"metaNode,omitempty"`
+	DataNode        DataNodeSpec   `json:"dataNode,omitempty"`
+	Consul          ConsulSpec     `json:"consul,omitempty"`
+
+	// Indicates user intent when deleting a cluster; blocks orchestration and should not be set if cluster
+	// deletion is not imminent.
+	CleanupPolicy CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
+type ConsulSpec struct {
+	Port            int32                   `json:"port,omitempty"`
+	Image           string                  `json:"image,omitempty"`
+	ImagePullPolicy v1.PullPolicy           `json:"imagePullPolicy,omitempty"`
+	Resources       v1.ResourceRequirements `json:"resources,omitempty"`
+}
 
 type ChubaoStatus struct {
-	Health         string                       `json:"health,omitempty"`
+	Health         string                         `json:"health,omitempty"`
 	Details        map[string]ChubaoHealthMessage `json:"details,omitempty"`
-	LastChecked    string                       `json:"lastChecked,omitempty"`
-	LastChanged    string                       `json:"lastChanged,omitempty"`
-	PreviousHealth string                       `json:"previousHealth,omitempty"`
-}
-
-type ClusterVersion struct {
-	Image   string `json:"image,omitempty"`
-	Version string `json:"version,omitempty"`
+	LastChecked    string                         `json:"lastChecked,omitempty"`
+	LastChanged    string                         `json:"lastChanged,omitempty"`
+	PreviousHealth string                         `json:"previousHealth,omitempty"`
 }
 
 type ChubaoHealthMessage struct {
@@ -118,45 +134,126 @@ type ChubaoHealthMessage struct {
 
 // VersionSpec represents the settings for the cfs-server version that Rook is orchestrating.
 type CFSVersionSpec struct {
-	ServerImage string `json:"serverImage,omitempty"`
-	ClientImage string `json:"clientImage,omitempty"`
+	ServerImage     string        `json:"serverImage"`
+	ClientImage     string        `json:"clientImage,omitempty"`
+	ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 type DataNodeSpec struct {
-	LogLevel      string                  `json:"logLevel,omitempty"`
-	Port          int32                   `json:"port,omitempty"`
-	Prof          int32                   `json:"prof,omitempty"`
-	ExporterPort  int32                   `json:"exporterPort,omitempty"`
-	RaftHeartbeat int32                   `json:"raftHeartbeat,omitempty"`
-	RaftReplica   int32                   `json:"raftReplica,omitempty"`
-	Disks         []string                `json:"disks,omitempty"`
-	ZoneName      string                  `json:"zoneName,omitempty"`
-	NodeSelector  v1.NodeSelector         `json:"nodeSelector,omitempty"`
-	Resource      v1.ResourceRequirements `json:"resource,omitempty"`
+	LogLevel       string                           `json:"logLevel,omitempty"`
+	Port           int32                            `json:"port,omitempty"`
+	Prof           int32                            `json:"prof,omitempty"`
+	ExporterPort   int32                            `json:"exporterPort,omitempty"`
+	RaftHeartbeat  int32                            `json:"raftHeartbeat,omitempty"`
+	RaftReplica    int32                            `json:"raftReplica,omitempty"`
+	Disks          []string                         `json:"disks"`
+	ZoneName       string                           `json:"zoneName,omitempty"`
+	UpdateStrategy appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	Resource       v1.ResourceRequirements          `json:"resource,omitempty"`
 }
 
 type MetaNodeSpec struct {
-	LogLevel      string                  `json:"logLevel,omitempty"`
-	TotalMem      int64                   `json:"totalMem,omitempty"`
-	Port          int32                   `json:"port,omitempty"`
-	Prof          int32                   `json:"prof,omitempty"`
-	ExporterPort  int32                   `json:"exporterPort,omitempty"`
-	RaftHeartbeat int32                   `json:"raftHeartbeat,omitempty"`
-	RaftReplica   int32                   `json:"raftReplica,omitempty"`
-	ZoneName      string                  `json:"zoneName,omitempty"`
-	NodeSelector  v1.NodeSelector         `json:"nodeSelector,omitempty"`
-	Resource      v1.ResourceRequirements `json:"resource,omitempty"`
+	LogLevel       string                           `json:"logLevel,omitempty"`
+	TotalMem       int64                            `json:"totalMem,omitempty"`
+	Port           int32                            `json:"port,omitempty"`
+	Prof           int32                            `json:"prof,omitempty"`
+	ExporterPort   int32                            `json:"exporterPort,omitempty"`
+	RaftHeartbeat  int32                            `json:"raftHeartbeat,omitempty"`
+	RaftReplica    int32                            `json:"raftReplica,omitempty"`
+	ZoneName       string                           `json:"zoneName,omitempty"`
+	UpdateStrategy appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	Resource       v1.ResourceRequirements          `json:"resource,omitempty"`
 }
 
 type MasterSpec struct {
-	Replicas            int32                   `json:"replicas,omitempty"`
-	Cluster             string                  `json:"cluster,omitempty"`
-	LogLevel            string                  `json:"logLevel,omitempty"`
-	RetainLogs          int32                   `json:"retainLogs,omitempty"`
-	Port                int32                   `json:"port,omitempty"`
-	Prof                int32                   `json:"prof,omitempty"`
-	ExporterPort        int32                   `json:"exporterPort,omitempty"`
-	MetaNodeReservedMem int32                   `json:"metaNodeReservedMem,omitempty"`
-	NodeSelector        v1.NodeSelector         `json:"nodeSelector,omitempty"`
-	Resource            v1.ResourceRequirements `json:"resource,omitempty"`
+	Replicas            int32                            `json:"replicas,omitempty"`
+	Cluster             string                           `json:"cluster"`
+	LogLevel            string                           `json:"logLevel,omitempty"`
+	RetainLogs          int32                            `json:"retainLogs,omitempty"`
+	Port                int32                            `json:"port,omitempty"`
+	Prof                int32                            `json:"prof,omitempty"`
+	ExporterPort        int32                            `json:"exporterPort,omitempty"`
+	MetaNodeReservedMem int64                            `json:"metaNodeReservedMem,omitempty"`
+	UpdateStrategy      appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	Resource            v1.ResourceRequirements          `json:"resource,omitempty"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChubaoMonitor struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              MonitorSpec   `json:"spec"`
+	Status            MonitorStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChubaoMonitorList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []ChubaoMonitor `json:"items"`
+}
+
+type MonitorSpec struct {
+	ConsulUrl string `json:"consulUrl"`
+	Password  string `json:"password"`
+}
+
+type GrafanaStatus string
+
+const (
+	GrafanaStatusReady   GrafanaStatus = "Ready"
+	GrafanaStatusFailure GrafanaStatus = "Failure"
+	GrafanaStatusUnknown GrafanaStatus = "Unknown"
+)
+
+type PrometheusStatus string
+
+const (
+	PrometheusStatusReady   PrometheusStatus = "Ready"
+	PrometheusStatusFailure PrometheusStatus = "Failure"
+	PrometheusStatusUnknown PrometheusStatus = "Unknown"
+)
+
+type MonitorStatus struct {
+	Grafana    GrafanaStatus    `json:"grafana"`
+	Prometheus PrometheusStatus `json:"prometheus"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChubaoObjectStore struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              ObjectStoreSpec   `json:"spec"`
+	Status            ObjectStoreStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChubaoObjectStoreList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []ChubaoMonitor `json:"items"`
+}
+
+type ObjectStoreSpec struct {
+	Replicas     int32                   `json:"replicas,omitempty"`
+	MasterAddr   string                  `json:"masterAddr"`
+	LogLevel     string                  `json:"logLevel,omitempty"`
+	Port         int32                   `json:"port,omitempty"`
+	Prof         int32                   `json:"prof,omitempty"`
+	ExporterPort int32                   `json:"exporterPort,omitempty"`
+	Region       string                  `json:"region"`
+	Domains      string                  `json:"domains,omitempty"`
+	Host         string                  `json:"host,omitempty"`
+	Resource     v1.ResourceRequirements `json:"resource,omitempty"`
+}
+
+type ObjectStoreStatus struct {
 }

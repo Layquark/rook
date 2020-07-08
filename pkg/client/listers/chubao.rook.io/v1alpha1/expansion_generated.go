@@ -25,3 +25,19 @@ type ChubaoClusterListerExpansion interface{}
 // ChubaoClusterNamespaceListerExpansion allows custom methods to be added to
 // ChubaoClusterNamespaceLister.
 type ChubaoClusterNamespaceListerExpansion interface{}
+
+// ChubaoMonitorListerExpansion allows custom methods to be added to
+// ChubaoMonitorLister.
+type ChubaoMonitorListerExpansion interface{}
+
+// ChubaoMonitorNamespaceListerExpansion allows custom methods to be added to
+// ChubaoMonitorNamespaceLister.
+type ChubaoMonitorNamespaceListerExpansion interface{}
+
+// ChubaoObjectStoreListerExpansion allows custom methods to be added to
+// ChubaoObjectStoreLister.
+type ChubaoObjectStoreListerExpansion interface{}
+
+// ChubaoObjectStoreNamespaceListerExpansion allows custom methods to be added to
+// ChubaoObjectStoreNamespaceLister.
+type ChubaoObjectStoreNamespaceListerExpansion interface{}

@@ -7,6 +7,7 @@ spec:
   cfsVersion:
     serverImage: chubaofs/cfs-server:2.0.5
     clientImage: chubaofs/cfs-client:2.0.5
+    imagePullPolicy: IfNotPresent
 
   # The path on the host where configuration files will be persisted. Must be specified.
   # Important: if you reinstall the cluster, make sure you delete this directory from each host or else the mons will fail to start on the new cluster.
@@ -70,8 +71,8 @@ spec:
 #        cpu: "8000m"
   client:
     replicas: 1
-    volName: "test"
-    owner: "chubaofs"
+    volName: test
+    owner: test-user
     logLevel: info
     exporterPort: 9530
     prof: 17410
@@ -82,3 +83,7 @@ spec:
       limits:
         memory: "1024Mi"
         cpu: "1000m"
+  consul:
+    port: 8500
+    image: consul:1.6.1
+    imagePullPolicy: IfNotPresent

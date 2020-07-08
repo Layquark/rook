@@ -19,3 +19,7 @@ limitations under the License.
 package v1alpha1
 
 type ChubaoClusterExpansion interface{}
+
+type ChubaoMonitorExpansion interface{}
+
+type ChubaoObjectStoreExpansion interface{}

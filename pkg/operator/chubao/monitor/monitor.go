@@ -1,22 +1,18 @@
-package objectstore
+package monitor
 
 import (
 	"github.com/rook/rook/pkg/clusterd"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
-
-func Add(mgr manager.Manager, context *clusterd.Context) error {
-	return nil
-}
 
 const (
-	objectStoreQueueName = "chubao-monitor-queue"
+	componentName    = "monitor"
+	monitorQueueName = "chubao-monitor-queue"
 )
 
-type ObjectStoreEventHandler struct {
+type MonitorEventHandler struct {
 	cache.ResourceEventHandler
 
 	context  *clusterd.Context
@@ -24,16 +20,16 @@ type ObjectStoreEventHandler struct {
 	recorder record.EventRecorder
 }
 
-func New(context *clusterd.Context, recorder record.EventRecorder) *ObjectStoreEventHandler {
-	return &ObjectStoreEventHandler{
+func New(context *clusterd.Context, recorder record.EventRecorder) *MonitorEventHandler {
+	return &MonitorEventHandler{
 		context:  context,
 		recorder: recorder,
-		queue:    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), objectStoreQueueName),
+		queue:    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), monitorQueueName),
 	}
 }
 
 // OnAdd calls AddFunc if it's not nil.
-func (e *ObjectStoreEventHandler) OnAdd(obj interface{}) {
+func (e *MonitorEventHandler) OnAdd(obj interface{}) {
 	//newCluster, ok := obj.(*cassandrav1alpha1.Cluster)
 	//if !ok {
 	//	return
@@ -42,7 +38,7 @@ func (e *ObjectStoreEventHandler) OnAdd(obj interface{}) {
 }
 
 // OnUpdate calls UpdateFunc if it's not nil.
-func (e *ObjectStoreEventHandler) OnUpdate(oldObj, newObj interface{}) {
+func (e *MonitorEventHandler) OnUpdate(oldObj, newObj interface{}) {
 	//newCluster, ok := newObj.(*cassandrav1alpha1.Cluster)
 	//if !ok {
 	//	return
@@ -60,10 +56,10 @@ func (e *ObjectStoreEventHandler) OnUpdate(oldObj, newObj interface{}) {
 }
 
 // OnDelete calls DeleteFunc if it's not nil.
-func (e *ObjectStoreEventHandler) OnDelete(obj interface{}) {
+func (e *MonitorEventHandler) OnDelete(obj interface{}) {
 
 }
 
-func (e *ObjectStoreEventHandler) RunWorker() {
-	//fmt.Println("(cc *ObjectStoreEventHandler) RunWorker()")
+func (e *MonitorEventHandler) RunWorker() {
+	//fmt.Println("(cc *MonitorEventHandler) RunWorker()")
 }

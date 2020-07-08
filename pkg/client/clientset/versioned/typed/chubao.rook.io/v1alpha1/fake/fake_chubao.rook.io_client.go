@@ -32,6 +32,14 @@ func (c *FakeChubaoV1alpha1) ChubaoClusters(namespace string) v1alpha1.ChubaoClu
 	return &FakeChubaoClusters{c, namespace}
 }
 
+func (c *FakeChubaoV1alpha1) ChubaoMonitors(namespace string) v1alpha1.ChubaoMonitorInterface {
+	return &FakeChubaoMonitors{c, namespace}
+}
+
+func (c *FakeChubaoV1alpha1) ChubaoObjectStores(namespace string) v1alpha1.ChubaoObjectStoreInterface {
+	return &FakeChubaoObjectStores{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeChubaoV1alpha1) RESTClient() rest.Interface {

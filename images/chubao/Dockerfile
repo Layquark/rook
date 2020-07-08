@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM chubaofs/cfs-base:1.0.1
+FROM alpine:3.8
 
 # Run tini as PID 1 and avoid signal handling issues
 RUN curl --fail -sSL -o /tini https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${ARCH} && \

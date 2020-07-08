@@ -90,6 +90,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=chubao.rook.io, Version=v1alpha1
 	case chubaorookiov1alpha1.SchemeGroupVersion.WithResource("chubaoclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Chubao().V1alpha1().ChubaoClusters().Informer()}, nil
+	case chubaorookiov1alpha1.SchemeGroupVersion.WithResource("chubaomonitors"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Chubao().V1alpha1().ChubaoMonitors().Informer()}, nil
+	case chubaorookiov1alpha1.SchemeGroupVersion.WithResource("chubaoobjectstores"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Chubao().V1alpha1().ChubaoObjectStores().Informer()}, nil
 
 		// Group=cockroachdb.rook.io, Version=v1alpha1
 	case cockroachdbrookiov1alpha1.SchemeGroupVersion.WithResource("clusters"):
