@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rook-chubao-operator
-  namespace: rook-chubao
+  namespace: rook-chubao-system
 spec:
   selector:
     matchLabels:
