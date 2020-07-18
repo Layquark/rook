@@ -15,7 +15,6 @@ spec:
       labels:
         app: rook-chubao-operator
     spec:
-      serviceAccountName: rook-chubao-operator
       containers:
         - name: rook-chubao-operator
           image: chubaofs/cfs-operator:0.0.1
