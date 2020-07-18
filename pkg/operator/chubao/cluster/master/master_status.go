@@ -9,52 +9,52 @@ import (
 )
 
 type responseData struct {
-	code int          `json:"code"`
-	msg  string       `json:"msg"`
-	data MasterStatus `json:"data"`
+	Code int          `json:"code"`
+	Msg  string       `json:"msg,omitempty"`
+	Data MasterStatus `json:"data,omitempty"`
 }
 
 type MasterStatus struct {
-	dataNodeStatInfo dataNodeStatInfo     `json:"dataNodeStatInfo"`
-	metaNodeStatInfo metaNodeStatInfo     `json:"metaNodeStatInfo"`
-	zoneStatInfo     map[string]*zoneStat `json:"ZoneStatInfo"`
+	DataNodeStatInfo dataNodeStatInfo     `json:"dataNodeStatInfo,omitempty"`
+	MetaNodeStatInfo metaNodeStatInfo     `json:"metaNodeStatInfo,omitempty"`
+	ZoneStatInfo     map[string]*zoneStat `json:"ZoneStatInfo,omitempty"`
 }
 
 type dataNodeStatInfo struct {
-	totalGB     float32 `json:"TotalGB"`
-	usedGB      float32 `json:"UsedGB"`
-	increasedGB float32 `json:"IncreasedGB"`
-	usedRatio   float32 `json:"UsedRatio"`
+	TotalGB     float32 `json:"TotalGB,omitempty"`
+	UsedGB      float32 `json:"UsedGB,omitempty"`
+	IncreasedGB float32 `json:"IncreasedGB,omitempty"`
+	UsedRatio   float32 `json:"UsedRatio,omitempty"`
 }
 
 type metaNodeStatInfo struct {
-	totalGB     float32 `json:"TotalGB"`
-	usedGB      float32 `json:"UsedGB"`
-	increasedGB float32 `json:"IncreasedGB"`
-	usedRatio   float32 `json:"UsedRatio"`
+	TotalGB     float32 `json:"TotalGB,omitempty"`
+	UsedGB      float32 `json:"UsedGB,omitempty"`
+	IncreasedGB float32 `json:"IncreasedGB,omitempty"`
+	UsedRatio   float32 `json:"UsedRatio,omitempty"`
 }
 
 type zoneStat struct {
-	dataNodeStat dataNodeStat `json:"dataNodeStat"`
-	metaNodeStat metaNodeStat `json:"metaNodeStat"`
+	DataNodeStat dataNodeStat `json:"dataNodeStat,omitempty"`
+	MetaNodeStat metaNodeStat `json:"metaNodeStat,omitempty"`
 }
 
 type dataNodeStat struct {
-	totalGB       float32 `json:"TotalGB"`
-	usedGB        float32 `json:"UsedGB"`
-	availGB       float32 `json:"AvailGB"`
-	usedRatio     float32 `json:"UsedRatio"`
-	totalNodes    int     `json:"TotalNodes"`
-	writableNodes int     `json:"WritableNodes"`
+	TotalGB       float32 `json:"TotalGB,omitempty"`
+	UsedGB        float32 `json:"UsedGB,omitempty"`
+	AvailGB       float32 `json:"AvailGB,omitempty"`
+	UsedRatio     float32 `json:"UsedRatio,omitempty"`
+	TotalNodes    int     `json:"TotalNodes,omitempty"`
+	WritableNodes int     `json:"WritableNodes,omitempty"`
 }
 
 type metaNodeStat struct {
-	totalGB       float32 `json:"TotalGB"`
-	usedGB        float32 `json:"UsedGB"`
-	availGB       float32 `json:"AvailGB"`
-	usedRatio     float32 `json:"UsedRatio"`
-	totalNodes    int     `json:"TotalNodes"`
-	writableNodes int     `json:"WritableNodes"`
+	TotalGB       float32 `json:"TotalGB,omitempty"`
+	UsedGB        float32 `json:"UsedGB,omitempty"`
+	AvailGB       float32 `json:"AvailGB,omitempty"`
+	UsedRatio     float32 `json:"UsedRatio,omitempty"`
+	TotalNodes    int     `json:"TotalNodes,omitempty"`
+	WritableNodes int     `json:"WritableNodes,omitempty"`
 }
 
 func getMasterStatusURL(serviceName, namespace string, port int32) string {
@@ -93,16 +93,16 @@ func getStatus(masterStatusURL string) (*MasterStatus, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to unmarshal masterStatus. url:%s content:%s", masterStatusURL, string(bytes)))
 	}
 
-	if responseData.code != 0 {
-		return nil, fmt.Errorf("chubao cluster inner error, code:%d msg:%s", responseData.code, responseData.msg)
+	if responseData.Code != 0 {
+		return nil, fmt.Errorf("chubao cluster inner error, code:%d msg:%s", responseData.Code, responseData.Msg)
 	}
 
-	return &responseData.data, nil
+	return &responseData.Data, nil
 }
 
 func (ms *MasterStatus) IsAvailable() bool {
-	for _, value := range ms.zoneStatInfo {
-		if value.dataNodeStat.writableNodes >= 3 && value.metaNodeStat.writableNodes >= 3 {
+	for _, value := range ms.ZoneStatInfo {
+		if value.DataNodeStat.WritableNodes >= 3 && value.MetaNodeStat.WritableNodes >= 3 {
 			return true
 		}
 	}

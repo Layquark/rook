@@ -169,6 +169,8 @@ func createPodSpec(m *Master) corev1.PodSpec {
 	privileged := true
 	nodeSelector := make(map[string]string)
 	nodeSelector[fmt.Sprintf("%s-chubao-master", m.clusterObj.Namespace)] = "enabled"
+
+	pathType := corev1.HostPathDirectoryOrCreate
 	return corev1.PodSpec{
 		NodeSelector: nodeSelector,
 		HostNetwork:  true,
@@ -214,11 +216,11 @@ func createPodSpec(m *Master) corev1.PodSpec {
 		Volumes: []corev1.Volume{
 			{
 				Name:         volumeNameForLogPath,
-				VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: m.logDirHostPath}},
+				VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: m.logDirHostPath, Type: &pathType}},
 			},
 			{
 				Name:         volumeNameForDataPath,
-				VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: m.dataDirHostPath}},
+				VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: m.dataDirHostPath, Type: &pathType}},
 			},
 		},
 	}
