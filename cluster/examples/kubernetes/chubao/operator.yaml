@@ -5,7 +5,6 @@ metadata:
   name: rook-chubao-operator
   namespace: rook-chubao
 spec:
-  serviceAccount: rook-chubao-operator
   selector:
     matchLabels:
       app: rook-chubao-operator
@@ -15,6 +14,7 @@ spec:
       labels:
         app: rook-chubao-operator
     spec:
+      serviceAccount: rook-chubao-operator
       containers:
         - name: rook-chubao-operator
           image: chubaofs/cfs-operator:0.0.1
