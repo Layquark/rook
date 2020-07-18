@@ -17,7 +17,7 @@ include ../image.mk
 # ====================================================================================
 # Image Build Options
 
-CHUBAO_IMAGE = $(BUILD_REGISTRY)/chubao-$(GOARCH)
+CHUBAO_OPERATOR_IMAGE = $(BUILD_REGISTRY)/chubao-$(GOARCH)
 
 TEMP := $(shell mktemp -d)
 
@@ -25,10 +25,13 @@ TEMP := $(shell mktemp -d)
 # Build Rook Chubao
 
 do.build:
-	@echo === container build $(CHUBAO_IMAGE)
+	@echo === container build $(CHUBAO_OPERATOR_IMAGE)
 	@cp Dockerfile $(TEMP)
 	@cp $(OUTPUT_DIR)/bin/linux_$(GOARCH)/rook $(TEMP)
 	@$(DOCKERCMD) build $(BUILD_ARGS) \
-		-t $(CHUBAO_IMAGE) \
+		--build-arg ARCH=$(GOARCH) \
+    	--build-arg TINI_VERSION=$(TINI_VERSION) \
+		-t $(CHUBAO_OPERATOR_IMAGE) \
 		$(TEMP)
 	@rm -fr $(TEMP)
+	@echo === container build end

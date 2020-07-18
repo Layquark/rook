@@ -14,12 +14,14 @@
 
 FROM alpine:3.8
 
+ARG ARCH
+ARG TINI_VERSION
+
 # Run tini as PID 1 and avoid signal handling issues
-RUN curl --fail -sSL -o /tini https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${ARCH} && \
-    chmod +x /tini
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${ARCH} /bin/tini
+ADD rook /usr/local/bin/
 
-COPY rook /usr/local/bin/
-
-ENTRYPOINT ["/tini", "--", "/usr/local/bin/rook"]
+RUN chmod +x /bin/tini && chmod +x /usr/local/bin/rook
+ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/rook"]
 CMD [""]
 
