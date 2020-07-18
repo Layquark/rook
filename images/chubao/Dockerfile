@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM chubaofs/cfs-server:2.0.6
+FROM alpine:3.12.0
 
 ARG ARCH
 ARG TINI_VERSION
