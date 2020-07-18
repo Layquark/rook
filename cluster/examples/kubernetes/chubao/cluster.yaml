@@ -2,13 +2,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: chubaofs
+  name: rook-chubao
 ---
 apiVersion: chubao.rook.io/v1alpha1
 kind: ChubaoCluster
 metadata:
   name: mycluster
-  namespace: chubaofs
+  namespace: rook-chubao
 spec:
   cfsVersion:
     serverImage: chubaofs/cfs-server:0.0.1
