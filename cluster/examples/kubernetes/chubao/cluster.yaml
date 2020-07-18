@@ -16,16 +16,10 @@ spec:
   logDirHostPath: /var/log/rook
   master:
     cluster: my-cluster
-    nodeSelector:
-      chuabaofs-master: enabled
     metanodeReservedMem: 67108864
   metaNode:
-    nodeSelector:
-      chuabaofs-metanode: enabled
     totalMem: 26843545600
   dataNode:
-    nodeSelector:
-      chuabaofs-datanode: enabled
     disks:
       - /data0:21474836480
       - /data1:21474836480
