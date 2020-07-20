@@ -184,7 +184,7 @@ func createPodSpec(m *Master) corev1.PodSpec {
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &privileged,
 				},
-				Command: []string{
+				Args: []string{
 					"/cfs/bin/start.sh",
 					"master",
 				},
