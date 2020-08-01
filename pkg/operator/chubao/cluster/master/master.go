@@ -185,8 +185,11 @@ func createPodSpec(m *Master) corev1.PodSpec {
 					Privileged: &privileged,
 				},
 				Args: []string{
-					"/cfs/bin/start.sh",
-					"master",
+					"/bin/bash",
+					"-c",
+					"set -e",
+					"/cfs/bin/start.sh master",
+					"sleep 999999999d",
 				},
 				Env: []corev1.EnvVar{
 					{Name: "CBFS_CLUSTER_NAME", Value: m.clusterName},
@@ -258,7 +261,7 @@ func (m *Master) newMasterService() *corev1.Service {
 func (m *Master) getMasterPeers() string {
 	urls := make([]string, 0)
 	for i := 0; i < int(m.replicas); i++ {
-		urls = append(urls, fmt.Sprintf("%d:%s-%d.%s.%s.svc.cluster.local:%d", i, InstanceName, i, ServiceName, m.namespace, m.port))
+		urls = append(urls, fmt.Sprintf("%d:%s-%d.%s.%s.svc.cluster.local:%d", i+1, InstanceName, i, ServiceName, m.namespace, m.port))
 	}
 
 	return strings.Join(urls, ",")
