@@ -2,12 +2,12 @@ package master
 
 import (
 	"fmt"
-	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/operator/chubao/cluster/consul"
 	"github.com/rook/rook/pkg/operator/chubao/commons"
+	"github.com/rook/rook/pkg/operator/chubao/constants"
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,42 +19,27 @@ import (
 	"strings"
 )
 
-var logger = capnslog.NewPackageLogger("github.com/rook/rook", "chubao-master")
-
-var matchLabels = map[string]string{
-	"application": "rook-chubao-operator",
-	"component":   "chubao-master",
-}
+//var logger = capnslog.NewPackageLogger("github.com/rook/rook", "chubao-master")
 
 const (
-	InstanceName               = "master"
-	ServiceAccountName         = "rook-chubao-master"
-	ServiceName                = "master-service"
-	DefaultServerImage         = "chubaofs/cfs-server:0.0.1"
-	DefaultDataDirHostPath     = "/var/lib/chubaofs"
-	DefaultLogDirHostPath      = "/var/log/chubaofs"
-	DefaultReplicas            = 3
-	DefaultClusterName         = "rook-chubao-cluster"
-	DefaultLogLevel            = "info"
-	DefaultRetainLogs          = 2000
-	DefaultPort                = 17010
-	DefaultProf                = 17020
-	DefaultExporterPort        = 9500
-	DefaultMetanodeReservedMem = 67108864
+	instanceName               = "master"
+	defaultMasterServiceName   = "master-service"
+	defaultServerImage         = "chubaofs/cfs-server:0.0.1"
+	defaultDataDirHostPath     = "/var/lib/chubaofs"
+	defaultLogDirHostPath      = "/var/log/chubaofs"
+	defaultReplicas            = 3
+	defaultClusterName         = "rook-chubao-cluster"
+	defaultLogLevel            = "error"
+	defaultRetainLogs          = 2000
+	defaultPort                = 17110
+	defaultProf                = 17120
+	defaultExporterPort        = 17150
+	defaultMetaNodeReservedMem = 67108864
 
 	volumeNameForLogPath       = "pod-log-path"
 	volumeNameForDataPath      = "pod-data-path"
 	defaultDataPathInContainer = "/cfs/data"
 	defaultLogPathInContainer  = "/cfs/logs"
-	masterNodeLabelValue       = "enabled"
-)
-
-const (
-	startMasterScript = `
-set -ex
-echo "start master"
-/cfs/bin/cfs-server -f -c /cfs/conf/master.json
-`
 )
 
 type Master struct {
@@ -95,18 +80,18 @@ func New(
 		ownerRef:            ownerRef,
 		namespace:           clusterObj.Namespace,
 		masterObj:           masterObj,
-		serverImage:         commons.GetStringValue(spec.CFSVersion.ServerImage, DefaultServerImage),
+		serverImage:         commons.GetStringValue(spec.CFSVersion.ServerImage, defaultServerImage),
 		imagePullPolicy:     commons.GetImagePullPolicy(spec.CFSVersion.ImagePullPolicy),
-		dataDirHostPath:     commons.GetStringValue(spec.DataDirHostPath, DefaultDataDirHostPath),
-		logDirHostPath:      commons.GetStringValue(spec.LogDirHostPath, DefaultLogDirHostPath),
-		replicas:            commons.GetIntValue(masterObj.Replicas, DefaultReplicas),
-		clusterName:         commons.GetStringValue(masterObj.Cluster, DefaultClusterName),
-		logLevel:            commons.GetStringValue(masterObj.LogLevel, DefaultLogLevel),
-		retainLogs:          commons.GetIntValue(masterObj.RetainLogs, DefaultRetainLogs),
-		port:                commons.GetIntValue(masterObj.Port, DefaultPort),
-		prof:                commons.GetIntValue(masterObj.Prof, DefaultProf),
-		exporterPort:        commons.GetIntValue(masterObj.ExporterPort, DefaultExporterPort),
-		metanodeReservedMem: commons.GetInt64Value(masterObj.MetaNodeReservedMem, DefaultMetanodeReservedMem),
+		dataDirHostPath:     commons.GetStringValue(spec.DataDirHostPath, defaultDataDirHostPath),
+		logDirHostPath:      commons.GetStringValue(spec.LogDirHostPath, defaultLogDirHostPath),
+		replicas:            commons.GetIntValue(masterObj.Replicas, defaultReplicas),
+		clusterName:         commons.GetStringValue(masterObj.Cluster, defaultClusterName),
+		logLevel:            commons.GetStringValue(masterObj.LogLevel, defaultLogLevel),
+		retainLogs:          commons.GetIntValue(masterObj.RetainLogs, defaultRetainLogs),
+		port:                commons.GetIntValue(masterObj.Port, defaultPort),
+		prof:                commons.GetIntValue(masterObj.Prof, defaultProf),
+		exporterPort:        commons.GetIntValue(masterObj.ExporterPort, defaultExporterPort),
+		metanodeReservedMem: commons.GetInt64Value(masterObj.MetaNodeReservedMem, defaultMetaNodeReservedMem),
 	}
 }
 
@@ -133,21 +118,21 @@ func (m *Master) Deploy() error {
 }
 
 func (m *Master) newMasterStatefulSet() *appsv1.StatefulSet {
-	labels := commons.MasterLabels(InstanceName, m.clusterObj.Name)
+	labels := commons.MasterLabels(m.clusterObj.Name)
 	statefulSet := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(appsv1.StatefulSet{}).Name(),
 			APIVersion: appsv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            InstanceName,
+			Name:            instanceName,
 			Namespace:       m.namespace,
 			OwnerReferences: []metav1.OwnerReference{m.ownerRef},
-			Labels:          matchLabels,
+			Labels:          labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:            &m.replicas,
-			ServiceName:         ServiceName,
+			ServiceName:         defaultMasterServiceName,
 			PodManagementPolicy: appsv1.OrderedReadyPodManagement,
 			UpdateStrategy:      m.masterObj.UpdateStrategy,
 			Selector: &metav1.LabelSelector{
@@ -168,7 +153,7 @@ func (m *Master) newMasterStatefulSet() *appsv1.StatefulSet {
 func createPodSpec(m *Master) corev1.PodSpec {
 	privileged := true
 	nodeSelector := make(map[string]string)
-	nodeSelector[fmt.Sprintf("%s-chubao-master", m.clusterObj.Namespace)] = "enabled"
+	nodeSelector[fmt.Sprintf("%s-master", m.clusterObj.Namespace)] = "enabled"
 
 	pathType := corev1.HostPathDirectoryOrCreate
 	return corev1.PodSpec{
@@ -184,12 +169,12 @@ func createPodSpec(m *Master) corev1.PodSpec {
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &privileged,
 				},
-				Args: []string{
+				Command: []string{
 					"/bin/bash",
+				},
+				Args: []string{
 					"-c",
-					"set -e",
-					"/cfs/bin/start.sh master",
-					"sleep 999999999d",
+					"set -e; /cfs/bin/start.sh master; sleep 999999999d",
 				},
 				Env: []corev1.EnvVar{
 					{Name: "CBFS_CLUSTER_NAME", Value: m.clusterName},
@@ -199,7 +184,7 @@ func createPodSpec(m *Master) corev1.PodSpec {
 					{Name: "CBFS_RETAIN_LOGS", Value: fmt.Sprintf("%d", m.retainLogs)},
 					{Name: "CBFS_LOG_LEVEL", Value: m.logLevel},
 					{Name: "CBFS_EXPORTER_PORT", Value: fmt.Sprintf("%d", m.exporterPort)},
-					{Name: "CBFS_CONSUL_ADDR", Value: m.getConsulUrl()},
+					{Name: "CBFS_CONSUL_ADDR", Value: consul.GetConsulUrl(m.clusterObj)},
 					{Name: "CBFS_METANODE_RESERVED_MEM", Value: fmt.Sprintf("%d", m.metanodeReservedMem)},
 					k8sutil.PodIPEnvVar("POD_IP"),
 					k8sutil.NameEnvVar(),
@@ -229,19 +214,15 @@ func createPodSpec(m *Master) corev1.PodSpec {
 	}
 }
 
-func (m *Master) getConsulUrl() string {
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", consul.ServiceName, m.namespace, m.clusterObj.Spec.Consul.Port)
-}
-
 func (m *Master) newMasterService() *corev1.Service {
-	labels := commons.MasterLabels(ServiceName, m.clusterObj.Name)
+	labels := commons.MasterLabels(m.clusterObj.Name)
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(corev1.Service{}).Name(),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            ServiceName,
+			Name:            defaultMasterServiceName,
 			Namespace:       m.namespace,
 			OwnerReferences: []metav1.OwnerReference{m.ownerRef},
 			Labels:          labels,
@@ -252,7 +233,7 @@ func (m *Master) newMasterService() *corev1.Service {
 					Name: "port", Port: m.port, Protocol: corev1.ProtocolTCP,
 				},
 			},
-			Selector: matchLabels,
+			Selector: labels,
 		},
 	}
 	return service
@@ -261,7 +242,8 @@ func (m *Master) newMasterService() *corev1.Service {
 func (m *Master) getMasterPeers() string {
 	urls := make([]string, 0)
 	for i := 0; i < int(m.replicas); i++ {
-		urls = append(urls, fmt.Sprintf("%d:%s-%d.%s.%s.svc.cluster.local:%d", i+1, InstanceName, i, ServiceName, m.namespace, m.port))
+		urls = append(urls, fmt.Sprintf("%d:%s-%d.%s.%s.%s:%d", i+1, instanceName, i,
+			defaultMasterServiceName, m.namespace, constants.ServiceDomainSuffix, m.port))
 	}
 
 	return strings.Join(urls, ",")

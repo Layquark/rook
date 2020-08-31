@@ -6,6 +6,7 @@ import (
 	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/operator/chubao/commons"
+	"github.com/rook/rook/pkg/operator/chubao/constants"
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,16 +18,23 @@ import (
 )
 
 const (
-	InstanceName = "consul"
-	ServiceName  = "consul-service"
+	instanceName = "consul"
+	serviceName  = "consul-service"
 
-	DefaultPort  = 8500
-	DefaultImage = "consul:1.6.1"
+	defaultPort  = 8500
+	defaultImage = "consul:1.6.1"
 )
 
-var matchLabels = map[string]string{
-	"application": "rook-chubao-operator",
-	"component":   "consul",
+func GetConsulUrl(clusterObj *chubaoapi.ChubaoCluster) string {
+	if clusterObj == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("http://%s.%s.%s:%d",
+		serviceName,
+		clusterObj.Namespace,
+		constants.ServiceDomainSuffix,
+		commons.GetIntValue(clusterObj.Spec.Consul.Port, defaultPort))
 }
 
 type Consul struct {
@@ -57,8 +65,8 @@ func New(
 		consulObj:           consulObj,
 		ownerRef:            ownerRef,
 		namespace:           clusterObj.Namespace,
-		port:                commons.GetIntValue(consulObj.Port, DefaultPort),
-		image:               commons.GetStringValue(consulObj.Image, DefaultImage),
+		port:                commons.GetIntValue(consulObj.Port, defaultPort),
+		image:               commons.GetStringValue(consulObj.Image, defaultImage),
 		imagePullPolicy:     commons.GetImagePullPolicy(consulObj.ImagePullPolicy),
 	}
 }
@@ -86,14 +94,14 @@ func (consul *Consul) Deploy() error {
 }
 
 func (consul *Consul) newConsulService() *corev1.Service {
-	labels := commons.ConsulLabels(ServiceName, consul.clusterObj.Name)
+	labels := commons.ConsulLabels(consul.clusterObj.Name)
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(corev1.Service{}).Name(),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            ServiceName,
+			Name:            serviceName,
 			Namespace:       consul.namespace,
 			OwnerReferences: []metav1.OwnerReference{consul.ownerRef},
 			Labels:          labels,
@@ -106,14 +114,14 @@ func (consul *Consul) newConsulService() *corev1.Service {
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
-			Selector: matchLabels,
+			Selector: labels,
 		},
 	}
 	return service
 }
 
 func (consul *Consul) newConsulDeployment() *appsv1.Deployment {
-	labels := commons.ConsulLabels(InstanceName, consul.clusterObj.Name)
+	labels := commons.ConsulLabels(consul.clusterObj.Name)
 	replicas := int32(1)
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -121,10 +129,10 @@ func (consul *Consul) newConsulDeployment() *appsv1.Deployment {
 			APIVersion: appsv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            InstanceName,
+			Name:            instanceName,
 			Namespace:       consul.namespace,
 			OwnerReferences: []metav1.OwnerReference{consul.ownerRef},
-			Labels:          matchLabels,
+			Labels:          labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,

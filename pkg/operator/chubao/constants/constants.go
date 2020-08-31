@@ -16,17 +16,24 @@ limitations under the License.
 
 package constants
 
+// kubernetes service dns domain
+const (
+	ServiceDomainSuffix = "svc.cluster.local"
+)
+
+
 // Generic Labels used on objects created by the operator.
 const (
 	AppName         = "rook-chubao"
 	OperatorAppName = "rook-chubao-operator"
 
 	ComponentLabel   = "chubao.rook.io/component"
-	InstanceLabel    = "chubao.rook.io/instance"
 	ManagedByLabel   = "chubao.rook.io/managed-by"
 	ClusterNameLabel = "chubao.rook.io/cluster"
 
 	ComponentMaster      = "master"
+	ComponentMetaNode    = "metanode"
+	ComponentDataNode    = "datanode"
 	ComponentMonitor     = "monitor"
 	ComponentObjectStore = "objectstore"
 	ComponentConsul      = "consul"

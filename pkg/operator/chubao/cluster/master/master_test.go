@@ -13,5 +13,5 @@ func TestMaster_getMasterPeers(t *testing.T) {
 	}
 
 	peers := m.getMasterPeers()
-	assert.Equal(t, "0:master-0.master-service.test-namespace.svc.cluster.local:9000,1:master-1.master-service.test-namespace.svc.cluster.local:9000,2:master-2.master-service.test-namespace.svc.cluster.local:9000", peers)
+	assert.Equal(t, "1:master-0.master-service.test-namespace.svc.cluster.local:9000,2:master-1.master-service.test-namespace.svc.cluster.local:9000,3:master-2.master-service.test-namespace.svc.cluster.local:9000", peers)
 }
