@@ -72,12 +72,13 @@ func New(
 }
 
 func (consul *Consul) Deploy() error {
+	labels := consulLabels(consul.clusterObj.Name)
 	clientset := consul.context.Clientset
-	if _, err := k8sutil.CreateOrUpdateService(clientset, consul.namespace, consul.newConsulService()); err != nil {
+	if _, err := k8sutil.CreateOrUpdateService(clientset, consul.namespace, consul.newConsulService(labels)); err != nil {
 		return errors.Wrap(err, "failed to create Service for master")
 	}
 
-	deployment := consul.newConsulDeployment()
+	deployment := consul.newConsulDeployment(labels)
 	msg := fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 	if _, err := clientset.AppsV1().Deployments(consul.namespace).Create(deployment); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -93,8 +94,11 @@ func (consul *Consul) Deploy() error {
 	return nil
 }
 
-func (consul *Consul) newConsulService() *corev1.Service {
-	labels := commons.ConsulLabels(consul.clusterObj.Name)
+func consulLabels(clusterName string) map[string]string {
+	return commons.CommonLabels(constants.ComponentConsul, clusterName)
+}
+
+func (consul *Consul) newConsulService(labels map[string]string) *corev1.Service {
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(corev1.Service{}).Name(),
@@ -120,8 +124,7 @@ func (consul *Consul) newConsulService() *corev1.Service {
 	return service
 }
 
-func (consul *Consul) newConsulDeployment() *appsv1.Deployment {
-	labels := commons.ConsulLabels(consul.clusterObj.Name)
+func (consul *Consul) newConsulDeployment(labels map[string]string) *appsv1.Deployment {
 	replicas := int32(1)
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{

@@ -21,7 +21,6 @@ const (
 	ServiceDomainSuffix = "svc.cluster.local"
 )
 
-
 // Generic Labels used on objects created by the operator.
 const (
 	AppName         = "rook-chubao"
@@ -31,15 +30,11 @@ const (
 	ManagedByLabel   = "chubao.rook.io/managed-by"
 	ClusterNameLabel = "chubao.rook.io/cluster"
 
+	ComponentConsul      = "consul"
 	ComponentMaster      = "master"
 	ComponentMetaNode    = "metanode"
 	ComponentDataNode    = "datanode"
+	ComponentClient      = "client"
 	ComponentMonitor     = "monitor"
 	ComponentObjectStore = "objectstore"
-	ComponentConsul      = "consul"
-
-	MonitorNameLabel     = "chubao.rook.io/monitor"
-	ObjectStoreNameLabel = "chubao.rook.io/objectstore"
-
-	ClusterServiceNameLabel = "chubao.rook.io/cluster-service"
 )

@@ -56,7 +56,7 @@ func New(context *clusterd.Context, operatorNamespace string) *ClusterController
 	// Only watch kubernetes resources relevant to our app
 	var tweakListOptionsFunc internalinterfaces.TweakListOptionsFunc
 	tweakListOptionsFunc = func(options *metav1.ListOptions) {
-		options.LabelSelector = fmt.Sprintf("%s=%s", "app", _const.AppName)
+		options.LabelSelector = fmt.Sprintf("%s=%s", "app", constants.AppName)
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(context.Clientset, 0, kubeinformers.WithTweakListOptions(tweakListOptionsFunc))

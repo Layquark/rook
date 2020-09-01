@@ -28,7 +28,6 @@ const (
 	defaultDataDirHostPath     = "/var/lib/chubaofs"
 	defaultLogDirHostPath      = "/var/log/chubaofs"
 	defaultReplicas            = 3
-	defaultClusterName         = "rook-chubao-cluster"
 	defaultLogLevel            = "error"
 	defaultRetainLogs          = 2000
 	defaultPort                = 17110
@@ -55,7 +54,6 @@ type Master struct {
 	dataDirHostPath     string
 	logDirHostPath      string
 	replicas            int32
-	clusterName         string
 	logLevel            string
 	retainLogs          int32
 	port                int32
@@ -85,7 +83,6 @@ func New(
 		dataDirHostPath:     commons.GetStringValue(spec.DataDirHostPath, defaultDataDirHostPath),
 		logDirHostPath:      commons.GetStringValue(spec.LogDirHostPath, defaultLogDirHostPath),
 		replicas:            commons.GetIntValue(masterObj.Replicas, defaultReplicas),
-		clusterName:         commons.GetStringValue(masterObj.Cluster, defaultClusterName),
 		logLevel:            commons.GetStringValue(masterObj.LogLevel, defaultLogLevel),
 		retainLogs:          commons.GetIntValue(masterObj.RetainLogs, defaultRetainLogs),
 		port:                commons.GetIntValue(masterObj.Port, defaultPort),
@@ -96,19 +93,20 @@ func New(
 }
 
 func (m *Master) Deploy() error {
-	clientset := m.context.Clientset
-	if _, err := k8sutil.CreateOrUpdateService(clientset, m.namespace, m.newMasterService()); err != nil {
+	labels := masterLabels(m.clusterObj.Name)
+	clientSet := m.context.Clientset
+	if _, err := k8sutil.CreateOrUpdateService(clientSet, m.namespace, m.newMasterService(labels)); err != nil {
 		return errors.Wrap(err, "failed to create Service for master")
 	}
 
-	statefulSet := m.newMasterStatefulSet()
+	statefulSet := m.newMasterStatefulSet(labels)
 	msg := fmt.Sprintf("%s/%s", statefulSet.Namespace, statefulSet.Name)
-	if _, err := clientset.AppsV1().StatefulSets(m.namespace).Create(statefulSet); err != nil {
+	if _, err := clientSet.AppsV1().StatefulSets(m.namespace).Create(statefulSet); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, fmt.Sprintf("failed to create StatefulSet for master[%s]", msg))
 		}
 
-		_, err := clientset.AppsV1().StatefulSets(m.namespace).Update(statefulSet)
+		_, err := clientSet.AppsV1().StatefulSets(m.namespace).Update(statefulSet)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to update StatefulSet for master[%s]", msg))
 		}
@@ -117,8 +115,11 @@ func (m *Master) Deploy() error {
 	return nil
 }
 
-func (m *Master) newMasterStatefulSet() *appsv1.StatefulSet {
-	labels := commons.MasterLabels(m.clusterObj.Name)
+func masterLabels(clusterName string) map[string]string {
+	return commons.CommonLabels(constants.ComponentMaster, clusterName)
+}
+
+func (m *Master) newMasterStatefulSet(labels map[string]string) *appsv1.StatefulSet {
 	statefulSet := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(appsv1.StatefulSet{}).Name(),
@@ -153,8 +154,7 @@ func (m *Master) newMasterStatefulSet() *appsv1.StatefulSet {
 func createPodSpec(m *Master) corev1.PodSpec {
 	privileged := true
 	nodeSelector := make(map[string]string)
-	nodeSelector[fmt.Sprintf("%s-master", m.clusterObj.Namespace)] = "enabled"
-
+	nodeSelector[fmt.Sprintf("%s-%s", m.namespace, constants.ComponentMaster)] = "enabled"
 	pathType := corev1.HostPathDirectoryOrCreate
 	return corev1.PodSpec{
 		NodeSelector: nodeSelector,
@@ -177,7 +177,7 @@ func createPodSpec(m *Master) corev1.PodSpec {
 					"set -e; /cfs/bin/start.sh master; sleep 999999999d",
 				},
 				Env: []corev1.EnvVar{
-					{Name: "CBFS_CLUSTER_NAME", Value: m.clusterName},
+					{Name: "CBFS_CLUSTER_NAME", Value: m.clusterObj.Name},
 					{Name: "CBFS_PORT", Value: fmt.Sprintf("%d", m.port)},
 					{Name: "CBFS_PROF", Value: fmt.Sprintf("%d", m.prof)},
 					{Name: "CBFS_MASTER_PEERS", Value: m.getMasterPeers()},
@@ -190,6 +190,7 @@ func createPodSpec(m *Master) corev1.PodSpec {
 					k8sutil.NameEnvVar(),
 				},
 				Ports: []corev1.ContainerPort{
+					// Port Name must be no more than 15 characters
 					{Name: "port", ContainerPort: m.port, Protocol: corev1.ProtocolTCP},
 					{Name: "prof", ContainerPort: m.prof, Protocol: corev1.ProtocolTCP},
 					{Name: "exporter-port", ContainerPort: m.exporterPort, Protocol: corev1.ProtocolTCP},
@@ -214,8 +215,7 @@ func createPodSpec(m *Master) corev1.PodSpec {
 	}
 }
 
-func (m *Master) newMasterService() *corev1.Service {
-	labels := commons.MasterLabels(m.clusterObj.Name)
+func (m *Master) newMasterService(labels map[string]string) *corev1.Service {
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(corev1.Service{}).Name(),
@@ -239,11 +239,40 @@ func (m *Master) newMasterService() *corev1.Service {
 	return service
 }
 
+// 1:master-0.master-service.svc.cluster.local:17110,2:master-1.master-service.svc.cluster.local:17110,3:master-2.master-service.svc.cluster.local:17110
 func (m *Master) getMasterPeers() string {
 	urls := make([]string, 0)
 	for i := 0; i < int(m.replicas); i++ {
 		urls = append(urls, fmt.Sprintf("%d:%s-%d.%s.%s.%s:%d", i+1, instanceName, i,
 			defaultMasterServiceName, m.namespace, constants.ServiceDomainSuffix, m.port))
+	}
+
+	return strings.Join(urls, ",")
+}
+
+// master-0.master-service.svc.cluster.local:17110,master-1.master-service.svc.cluster.local:17110,master-2.master-service.svc.cluster.local:17110
+func GetMasterAddrs(clusterObj *chubaoapi.ChubaoCluster) string {
+	master := clusterObj.Spec.Master
+	replicas := func() int {
+		if master.Replicas == 0 {
+			return defaultReplicas
+		} else {
+			return int(master.Replicas)
+		}
+	}()
+
+	port := func() int {
+		if master.Port == 0 {
+			return defaultPort
+		} else {
+			return int(master.Port)
+		}
+	}()
+
+	urls := make([]string, 0)
+	for i := 0; i < replicas; i++ {
+		urls = append(urls, fmt.Sprintf("%s-%d.%s.%s.%s:%d", instanceName, i,
+			defaultMasterServiceName, clusterObj.Namespace, constants.ServiceDomainSuffix, port))
 	}
 
 	return strings.Join(urls, ",")

@@ -14,15 +14,7 @@ func recommendedLabels() map[string]string {
 	}
 }
 
-func MasterLabels(clusterName string) map[string]string {
-	return commonLabels(constants.ComponentMaster, clusterName)
-}
-
-func ConsulLabels(clusterName string) map[string]string {
-	return commonLabels(constants.ComponentConsul, clusterName)
-}
-
-func commonLabels(component, clusterName string) map[string]string {
+func CommonLabels(component, clusterName string) map[string]string {
 	labels := recommendedLabels()
 	labels[constants.ComponentLabel] = component
 	labels[constants.ManagedByLabel] = reflect.TypeOf(v1alpha1.ChubaoCluster{}).Name()

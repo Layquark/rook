@@ -10,7 +10,9 @@ import (
 	listers "github.com/rook/rook/pkg/client/listers/chubao.rook.io/v1alpha1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/operator/chubao/cluster/consul"
+	"github.com/rook/rook/pkg/operator/chubao/cluster/datanode"
 	"github.com/rook/rook/pkg/operator/chubao/cluster/master"
+	"github.com/rook/rook/pkg/operator/chubao/cluster/metanode"
 	"github.com/rook/rook/pkg/operator/chubao/commons"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -156,12 +158,22 @@ func (e *ClusterEventHandler) createCluster(cluster *chubaoapi.ChubaoCluster) er
 	ownerRef := newClusterOwnerRef(cluster)
 	c := consul.New(e.context, e.kubeInformerFactory, e.recorder, cluster, ownerRef)
 	if err := c.Deploy(); err != nil {
-		return errors.Wrap(err, "failed to start consul")
+		return errors.Wrap(err, "failed to deploy consul")
 	}
 
 	m := master.New(e.context, e.kubeInformerFactory, e.recorder, cluster, ownerRef)
 	if err := m.Deploy(); err != nil {
-		return errors.Wrap(err, "failed to start master")
+		return errors.Wrap(err, "failed to deploy master")
+	}
+
+	dn := datanode.New(e.context, e.kubeInformerFactory, e.recorder, cluster, ownerRef)
+	if err := dn.Deploy(); err != nil {
+		return errors.Wrap(err, "failed to deploy datanode")
+	}
+
+	mn := metanode.New(e.context, e.kubeInformerFactory, e.recorder, cluster, ownerRef)
+	if err := mn.Deploy(); err != nil {
+		return errors.Wrap(err, "failed to deploy metanode")
 	}
 
 	return nil
