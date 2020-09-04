@@ -18,7 +18,6 @@ package commons
 import (
 	"context"
 	"fmt"
-	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -26,8 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
-
-var logger = capnslog.NewPackageLogger("github.com/rook/rook", "chubao-spec")
 
 // contains checks if an item exists in a given list.
 func contains(list []string, s string) bool {
@@ -62,7 +59,6 @@ func AddFinalizerIfNotPresent(client client.Client, obj runtime.Object) error {
 	}
 
 	if !contains(accessor.GetFinalizers(), objectFinalizer) {
-		logger.Infof("adding finalizer %q on %q", objectFinalizer, accessor.GetName())
 		accessor.SetFinalizers(append(accessor.GetFinalizers(), objectFinalizer))
 
 		// Update CR with finalizer
@@ -83,7 +79,6 @@ func RemoveFinalizer(client client.Client, obj runtime.Object) error {
 	}
 
 	if contains(accessor.GetFinalizers(), objectFinalizer) {
-		logger.Infof("removing finalizer %q on %q", objectFinalizer, accessor.GetName())
 		accessor.SetFinalizers(remove(accessor.GetFinalizers(), objectFinalizer))
 		if err := client.Update(context.TODO(), obj); err != nil {
 			return errors.Wrapf(err, "failed to remove finalizer %q on %q", objectFinalizer, accessor.GetName())

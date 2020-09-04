@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	rookv1 "github.com/rook/rook/pkg/apis/rook.io/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,11 +32,24 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// Service is a named abstraction of software service (for example, mysql) consisting of local port
+// (for example 3306) that the proxy listens on, and the selector that determines which pods
+// will answer requests sent through the proxy.
 type ChubaoCluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              ClusterSpec   `json:"spec"`
-	Status            ClusterStatus `json:"status,omitempty"`
+
+	// Spec defines the desired identities of Cluster in this set.
+	// +optional
+	Spec ClusterSpec `json:"spec"`
+
+	// Status is the current status of Cluster in this ChubaoCluster. This data
+	// may be out of date by some window of time.
+	// +optional
+	Status ClusterStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -74,6 +88,7 @@ const (
 type CleanupPolicy string
 
 const (
+	CleanupPolicyNone             CleanupPolicy = "None"
 	CleanupPolicyDeleteLog        CleanupPolicy = "DeleteLog"
 	CleanupPolicyDeleteData       CleanupPolicy = "DeleteData"
 	CleanupPolicyDeleteDataAndLog CleanupPolicy = "DeleteDataAndLog"
@@ -98,24 +113,52 @@ type Condition struct {
 	LastTransitionTime metav1.Time        `json:"lastTransitionTime,omitempty"`
 }
 
+// A ClusterSpec is the specification of a ChubaoCluster.
 type ClusterSpec struct {
-	CFSVersion      CFSVersionSpec `json:"cfsVersion,omitempty"`
-	DataDirHostPath string         `json:"dataDirHostPath"`
-	LogDirHostPath  string         `json:"logDirHostPath"`
-	Master          MasterSpec     `json:"master,omitempty"`
-	MetaNode        MetaNodeSpec   `json:"metaNode,omitempty"`
-	DataNode        DataNodeSpec   `json:"dataNode,omitempty"`
-	Consul          ConsulSpec     `json:"consul,omitempty"`
+	// CFSVersion defines image version and strategy of pulling image
+	// +optional
+	CFSVersion CFSVersionSpec `json:"cfsVersion,omitempty"`
+
+	// DataDirHostPath defines data path for the component(Master, DataNode, and MetaNode)
+	// It is a host path, if unspecified, defaults to /var/lib/chubao.
+	// +optional
+	DataDirHostPath string `json:"dataDirHostPath"`
+
+	// LogDirHostPath defines logs path for the component(Master, DataNode, and MetaNode)
+	// It is a host path, if unspecified, defaults to /var/log/chubao.
+	// +optional
+	LogDirHostPath string `json:"logDirHostPath"`
+
+	// Master component in ChubaoCluster
+	// +optional
+	Master MasterSpec `json:"master,omitempty"`
+
+	// MetaNode component in ChubaoCluster
+	MetaNode MetaNodeSpec `json:"metaNode,omitempty"`
+
+	// DataNode component in ChubaoCluster
+	DataNode DataNodeSpec `json:"dataNode,omitempty"`
+
+	// Consul component in ChubaoCluster
+	// +optional
+	Consul ConsulSpec `json:"consul,omitempty"`
+
+	Stroage *StorageSpec `json:"consul,omitempty"`
 
 	// Indicates user intent when deleting a cluster; blocks orchestration and should not be set if cluster
 	// deletion is not imminent.
+	// +optional
 	CleanupPolicy CleanupPolicy `json:"cleanupPolicy,omitempty"`
+}
+
+type StorageSpec struct {
 }
 
 type ConsulSpec struct {
 	Port            int32                   `json:"port,omitempty"`
 	Image           string                  `json:"image,omitempty"`
 	ImagePullPolicy v1.PullPolicy           `json:"imagePullPolicy,omitempty"`
+	Placement       *rookv1.Placement       `json:"placement,omitempty"`
 	Resources       v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
@@ -134,8 +177,19 @@ type ChubaoHealthMessage struct {
 
 // VersionSpec represents the settings for the cfs-server version that Rook is orchestrating.
 type CFSVersionSpec struct {
-	ServerImage     string        `json:"serverImage"`
-	ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// Docker image name for ChubaoFS Server.
+	// More info: https://kubernetes.io/docs/concepts/containers/images
+	// This field is optional to allow higher level config management to default or override
+	// container images in workload controllers like Deployments and StatefulSets.
+	// +optional
+	ServerImage string `json:"serverImage"`
+
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// +optional
+	ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty" protobuf:"bytes,14,opt,name=imagePullPolicy,casttype=PullPolicy"`
 }
 
 type DataNodeSpec struct {
@@ -147,6 +201,7 @@ type DataNodeSpec struct {
 	RaftReplicaPort   int32                          `json:"raftReplicaPort,omitempty"`
 	Disks             []string                       `json:"disks"`
 	Zone              string                         `json:"zone,omitempty"`
+	Placement         *rookv1.Placement              `json:"placement,omitempty"`
 	UpdateStrategy    appsv1.DaemonSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	Resource          v1.ResourceRequirements        `json:"resource,omitempty"`
 }
@@ -160,18 +215,27 @@ type MetaNodeSpec struct {
 	RaftHeartbeatPort int32                          `json:"raftHeartbeatPort,omitempty"`
 	RaftReplicaPort   int32                          `json:"raftReplicaPort,omitempty"`
 	Zone              string                         `json:"zone,omitempty"`
+	Placement         *rookv1.Placement              `json:"placement,omitempty"`
 	UpdateStrategy    appsv1.DaemonSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	Resource          v1.ResourceRequirements        `json:"resource,omitempty"`
 }
 
+// A MasterSpec is the specification of Master component in the ChubaoCluster.
 type MasterSpec struct {
-	Replicas            int32                            `json:"replicas,omitempty"`
+	// replicas is the desired number of replicas of the given Template.
+	// These are replicas in the sense that they are instantiations of the
+	// same Template, but individual replicas also have a consistent identity.
+	// If unspecified, defaults to 3.
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
+
 	LogLevel            string                           `json:"logLevel,omitempty"`
 	RetainLogs          int32                            `json:"retainLogs,omitempty"`
 	Port                int32                            `json:"port,omitempty"`
 	Prof                int32                            `json:"prof,omitempty"`
 	ExporterPort        int32                            `json:"exporterPort,omitempty"`
 	MetaNodeReservedMem int64                            `json:"metaNodeReservedMem,omitempty"`
+	Placement           *rookv1.Placement                `json:"placement,omitempty"`
 	UpdateStrategy      appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	Resource            v1.ResourceRequirements          `json:"resource,omitempty"`
 }

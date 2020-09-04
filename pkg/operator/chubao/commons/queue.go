@@ -36,7 +36,6 @@ func ProcessNextWorkItem(queue workqueue.RateLimitingInterface, workFunc func(ke
 			return fmt.Errorf("error syncing '%s', requeueing: %s", key, err.Error())
 		}
 		queue.Forget(obj)
-		logger.Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 

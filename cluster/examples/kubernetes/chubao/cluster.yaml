@@ -12,6 +12,7 @@ metadata:
 spec:
   cfsVersion:
     serverImage: chubaofs/cfs-server:0.0.1
+    imagePullPolicy: IfNotPresent
   dataDirHostPath: /var/lib/rook
   logDirHostPath: /var/log/rook
   master:

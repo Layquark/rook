@@ -2,16 +2,15 @@ package metanode
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	chubaoapi "github.com/rook/rook/pkg/apis/chubao.rook.io/v1alpha1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/operator/chubao/cluster/consul"
 	"github.com/rook/rook/pkg/operator/chubao/cluster/master"
 	"github.com/rook/rook/pkg/operator/chubao/commons"
 	"github.com/rook/rook/pkg/operator/chubao/constants"
+	"github.com/rook/rook/pkg/operator/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/record"
@@ -21,8 +20,8 @@ import (
 const (
 	instanceName             = "metanode"
 	defaultServerImage       = "chubaofs/cfs-server:0.0.1"
-	defaultDataDirHostPath   = "/var/lib/chubaofs"
-	defaultLogDirHostPath    = "/var/log/chubaofs"
+	defaultDataDirHostPath   = "/var/lib/chubao"
+	defaultLogDirHostPath    = "/var/log/chubao"
 	defaultLogLevel          = "error"
 	defaultPort              = 17210
 	defaultProf              = 17220
@@ -35,6 +34,14 @@ const (
 	volumeNameForDataPath      = "pod-data-path"
 	defaultDataPathInContainer = "/cfs/data"
 	defaultLogPathInContainer  = "/cfs/logs"
+)
+
+const (
+	// message
+	MessageMetaNodeCreated = "MetaNode[%s] DaemonSet created"
+
+	// error message
+	MessageMetaNodeFailed = "Failed to create MetaNode[%s] DaemonSet"
 )
 
 type MetaNode struct {
@@ -92,18 +99,14 @@ func (mn *MetaNode) Deploy() error {
 	labels := metaNodeLabels(mn.clusterObj.Name)
 	clientSet := mn.context.Clientset
 	daemonSet := mn.newMetaNodeDaemonSet(labels)
-	msg := fmt.Sprintf("%s/%s", daemonSet.Namespace, daemonSet.Name)
-	if _, err := clientSet.AppsV1().DaemonSets(mn.namespace).Create(daemonSet); err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			return errors.Wrap(err, fmt.Sprintf("failed to create DaemonSets for metanode[%s]", msg))
-		}
-
-		_, err := clientSet.AppsV1().DaemonSets(mn.namespace).Update(daemonSet)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to update DaemonSets for metanode[%s]", msg))
-		}
+	metaNodeKey := fmt.Sprintf("%s/%s", daemonSet.Namespace, daemonSet.Name)
+	err := k8sutil.CreateDaemonSet(daemonSet.Name, daemonSet.Namespace, clientSet, daemonSet)
+	if err != nil {
+		mn.recorder.Eventf(mn.clusterObj, corev1.EventTypeNormal, constants.ErrCreateFailed, MessageMetaNodeFailed, metaNodeKey)
 	}
-	return nil
+
+	mn.recorder.Eventf(mn.clusterObj, corev1.EventTypeNormal, constants.SuccessCreated, MessageMetaNodeCreated, metaNodeKey)
+	return err
 }
 
 func metaNodeLabels(clusterName string) map[string]string {
@@ -111,6 +114,17 @@ func metaNodeLabels(clusterName string) map[string]string {
 }
 
 func (mn *MetaNode) newMetaNodeDaemonSet(labels map[string]string) *appsv1.DaemonSet {
+	pod := createPodSpec(mn)
+	var selector *metav1.LabelSelector
+	placement := mn.metaNodeObj.Placement
+	if placement != nil {
+		placement.ApplyToPodSpec(pod)
+	} else {
+		selector = &metav1.LabelSelector{
+			MatchLabels: labels,
+		}
+	}
+
 	daemonSet := &appsv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       reflect.TypeOf(appsv1.DaemonSet{}).Name(),
@@ -124,27 +138,26 @@ func (mn *MetaNode) newMetaNodeDaemonSet(labels map[string]string) *appsv1.Daemo
 		},
 		Spec: appsv1.DaemonSetSpec{
 			UpdateStrategy: mn.metaNodeObj.UpdateStrategy,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
+			Selector:       selector,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: createPodSpec(mn),
+				Spec: *pod,
 			},
 		},
 	}
 
+	k8sutil.AddRookVersionLabelToDaemonSet(daemonSet)
 	return daemonSet
 }
 
-func createPodSpec(mn *MetaNode) corev1.PodSpec {
+func createPodSpec(mn *MetaNode) *corev1.PodSpec {
 	privileged := true
 	nodeSelector := make(map[string]string)
 	nodeSelector[fmt.Sprintf("%s-%s", mn.namespace, constants.ComponentMetaNode)] = "enabled"
 	pathType := corev1.HostPathDirectoryOrCreate
-	return corev1.PodSpec{
+	return &corev1.PodSpec{
 		NodeSelector: nodeSelector,
 		HostNetwork:  true,
 		HostPID:      true,
@@ -170,7 +183,7 @@ func createPodSpec(mn *MetaNode) corev1.PodSpec {
 					{Name: "CBFS_RAFT_HEARTBEAT_PORT", Value: fmt.Sprintf("%d", mn.raftHeartbeatPort)},
 					{Name: "CBFS_RAFT_REPLICA_PORT", Value: fmt.Sprintf("%d", mn.raftReplicaPort)},
 					{Name: "CBFS_EXPORTER_PORT", Value: fmt.Sprintf("%d", mn.exporterPort)},
-					{Name: "CBFS_MASTER_ADDRS", Value: master.GetMasterAddrs(mn.clusterObj)},
+					{Name: "CBFS_MASTER_ADDRS", Value: master.GetMasterAddr(mn.clusterObj)},
 					{Name: "CBFS_LOG_LEVEL", Value: mn.logLevel},
 					{Name: "CBFS_CONSUL_ADDR", Value: consul.GetConsulUrl(mn.clusterObj)},
 				},

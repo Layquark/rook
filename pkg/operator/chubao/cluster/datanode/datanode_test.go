@@ -51,7 +51,7 @@ func Test_setVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setVolume(tt.args.dn, &tt.args.pod)
+			addDiskToVolume(tt.args.dn, &tt.args.pod)
 			if len(tt.args.pod.Volumes) != 4 || len(tt.args.pod.Containers[0].VolumeMounts) != 4 {
 				t.Fatal("set volume fail")
 			}

@@ -10,7 +10,6 @@ import (
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/record"
@@ -23,6 +22,16 @@ const (
 
 	defaultPort  = 8500
 	defaultImage = "consul:1.6.1"
+)
+
+const (
+	// message
+	MessageConsulCreated        = "Consul[%s] Deployment created"
+	MessageConsulServiceCreated = "Consul[%s] Service created"
+
+	// error message
+	MessageCreateConsulServiceFailed = "Failed to create Consul[%s] Service"
+	MessageCreateConsulFailed        = "Failed to create Consul[%s] Deployment"
 )
 
 func GetConsulUrl(clusterObj *chubaoapi.ChubaoCluster) string {
@@ -73,24 +82,23 @@ func New(
 
 func (consul *Consul) Deploy() error {
 	labels := consulLabels(consul.clusterObj.Name)
-	clientset := consul.context.Clientset
-	if _, err := k8sutil.CreateOrUpdateService(clientset, consul.namespace, consul.newConsulService(labels)); err != nil {
-		return errors.Wrap(err, "failed to create Service for master")
+	clientSet := consul.context.Clientset
+
+	service := consul.newConsulService(labels)
+	serviceKey := fmt.Sprintf("%s/%s", service.Namespace, service.Name)
+	if _, err := k8sutil.CreateOrUpdateService(clientSet, consul.namespace, service); err != nil {
+		consul.recorder.Eventf(consul.clusterObj, corev1.EventTypeWarning, constants.ErrCreateFailed, MessageCreateConsulServiceFailed, serviceKey)
+		return errors.Wrapf(err, MessageCreateConsulServiceFailed, serviceKey)
 	}
+	consul.recorder.Eventf(consul.clusterObj, corev1.EventTypeNormal, constants.SuccessCreated, MessageConsulServiceCreated, serviceKey)
 
 	deployment := consul.newConsulDeployment(labels)
-	msg := fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
-	if _, err := clientset.AppsV1().Deployments(consul.namespace).Create(deployment); err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			return errors.Wrap(err, fmt.Sprintf("failed to create Deployment for consul[%s]", msg))
-		}
-
-		_, err := clientset.AppsV1().Deployments(consul.namespace).Update(deployment)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to update Deployment for consul[%s]", msg))
-		}
+	err := k8sutil.CreateDeployment(clientSet, deployment.Name, deployment.Namespace, deployment)
+	consulKey := fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
+	if err != nil {
+		consul.recorder.Eventf(consul.clusterObj, corev1.EventTypeWarning, constants.ErrCreateFailed, MessageCreateConsulFailed, consulKey)
 	}
-
+	consul.recorder.Eventf(consul.clusterObj, corev1.EventTypeNormal, constants.SuccessCreated, MessageConsulCreated, consulKey)
 	return nil
 }
 
